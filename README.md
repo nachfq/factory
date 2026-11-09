@@ -10,6 +10,8 @@ remain a separate checkout: Factory applies them without owning their contents.
 infra/incus/   Host configuration, image build and recovery instructions
 setup-agent.sh Ubuntu tool installation and explicit user setup commands
 scripts/       agent-env, Codex defaults and their tests
+skills/        Own skills: codex-full-agents and herdr-nvim
+skills.yaml    Pinned third-party skill sources (initially Matt Pocock)
 config/        Environment system configuration (AppArmor)
 legacy/        Previous Factory development workflows and their installer/tests
 ```
@@ -22,5 +24,5 @@ integration in `harness-fq` should point to this repository's `legacy/` director
 
 See [agent setup](docs/agent-setup.md) for Ubuntu installation, dotfiles integration
 and the laptop command, or [the Incus recipe](infra/incus/README.md) for a clean host
-and image build. Matt's skills and the full-agent skills will be integrated in a
-separate step; this installer currently preserves the existing tooling behavior.
+and image build. [The skill bundle](docs/skills.md) is installed with
+`./setup-agent.sh install-skills` on both the laptop and agent environments.

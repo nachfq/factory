@@ -45,6 +45,7 @@ cd /home/dev/factory
 ./setup-agent.sh configure-codex
 ./setup-agent.sh install-herdr
 ./setup-agent.sh apply-dotfiles /home/dev/dotfiles
+./setup-agent.sh install-skills
 sudo -n true
 for tool in git gh codex herdr nvim node npm mise uv fzf bat zoxide btop dua rsync pkg-config; do
   command -v "$tool"

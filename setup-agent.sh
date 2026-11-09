@@ -19,6 +19,8 @@ Usage: ./setup-agent.sh COMMAND [ARGUMENT]
   configure-codex  Default Codex to GPT-6.1 Sol / high with full access (YOLO).
                    Run only inside the disposable agent environment.
   install-herdr  Install/update Herdr and its Codex status integration as this user.
+  install-skills  Install own skills and the pinned third-party bundle.
+                  Use --dry-run to preview, or --replace to back up old symlinks.
 
 Logins and project dependencies are configured separately.
 HELP
@@ -38,7 +40,7 @@ install_tools() {
   fi
   "${root[@]}" apt-get update -qq
   "${root[@]}" env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
-    git curl ca-certificates python3 build-essential unzip xz-utils ripgrep fd-find jq bash-completion eza bubblewrap apparmor \
+    git curl ca-certificates python3 python3-yaml build-essential unzip xz-utils ripgrep fd-find jq bash-completion eza bubblewrap apparmor \
     fzf bat zoxide btop rsync pkgconf sudo openssh-server
   "${root[@]}" install -m 644 "$repo_dir/config/apparmor/dotfiles-bwrap" /etc/apparmor.d/dotfiles-bwrap
   "${root[@]}" /sbin/apparmor_parser -r /etc/apparmor.d/dotfiles-bwrap
@@ -205,6 +207,7 @@ case "${1:-help}" in
     python3 "$repo_dir/scripts/configure-codex.py"
     ;;
   install-herdr) install_herdr ;;
+  install-skills) shift; exec python3 "$repo_dir/scripts/install-skills.py" "$@" ;;
   -h|--help|help) usage ;;
   *) usage >&2; exit 2 ;;
 esac

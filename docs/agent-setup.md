@@ -27,6 +27,7 @@ cd ~/factory
 ./setup-agent.sh configure-codex
 ./setup-agent.sh install-herdr
 ./setup-agent.sh apply-dotfiles ~/dotfiles
+./setup-agent.sh install-skills
 ```
 
 The last command calls the dotfiles checkout's `apply.sh apply` and
@@ -45,6 +46,9 @@ The tooling remains the same as before the repository split:
   prompts. `configure-codex` preserves other settings and hook trust, backs up
   changes under `~/.local/state/factory/backups`, and leaves auth files alone.
 - Herdr through its official installer, with its Codex integration.
+- The [shared skill bundle](skills.md): our own Herdr/Codex skills and the pinned
+  Matt Pocock collection. Requires Python's PyYAML (`python3-yaml` on Ubuntu,
+  `python-yaml` on Arch), installed by the Ubuntu tool step.
 
 The environment's AppArmor policy remains named `dotfiles-bwrap` for compatibility
 with previous images; its source is now `config/apparmor/dotfiles-bwrap` in Factory.
