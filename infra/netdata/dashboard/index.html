@@ -1,25 +1,41 @@
 <!doctype html>
 <html lang="es">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Recursos · Homelab</title>
-<link rel="stylesheet" href="style.css">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Recursos · Homelab</title>
+  <link rel="stylesheet" href="style.css?v=3">
+</head>
+<body>
 <main>
-  <header>
-    <div><p class="eyebrow">RECURSOS</p><h1 id="hostname">Homelab</h1></div>
-    <div class="controls"><label for="range">Historial</label>
-      <select id="range"><option value="900">15 minutos</option><option value="3600" selected>1 hora</option><option value="21600">6 horas</option><option value="86400">24 horas</option></select>
-      <a href="/" target="_blank" rel="noopener">Netdata ↗</a>
+  <header class="page-header">
+    <div>
+      <p class="eyebrow"><span class="brand-mark" aria-hidden="true">◈</span> TU SERVIDOR</p>
+      <h1 id="hostname">Homelab</h1>
+      <p class="intro">Un vistazo a los recursos de la última hora.</p>
     </div>
+    <div id="status" class="live-status" role="status">Conectando…</div>
   </header>
-  <p id="status" role="status">Conectando…</p>
-  <div id="hosts"></div>
-  <h2>Entornos Incus</h2>
-  <div id="instances"></div>
-  <footer>CPU/RAM: muestras cada 5 s, vista cada 15 s. Disco: cada 10 min.
-    El espacio libre es compartido; cada entorno muestra sus archivos, sistema y herramientas.
-    Los contenedores detenidos conservan su última medición de disco.
+
+  <section id="host" aria-label="Recursos del servidor" aria-busy="true">
+    <div class="loading-state">Buscando las últimas mediciones…</div>
+  </section>
+
+  <section class="environments" aria-labelledby="environments-title">
+    <div class="list-heading">
+      <div><h2 id="environments-title">Contenedores <span id="count" class="count">—</span></h2>
+        <p>De mayor a menor espacio en disco.</p></div>
+      <span class="period-label">ÚLTIMA HORA</span>
+    </div>
+    <div id="instances"></div>
+  </section>
+
+  <footer>
+    <span>CPU sobre el total del servidor. Las escalas son iguales entre filas.</span>
+    <span id="disk-updated">El disco se mide cada 10 minutos.</span>
   </footer>
 </main>
-<script src="app.js"></script>
+<script src="app.js?v=3"></script>
+</body>
 </html>
