@@ -47,7 +47,7 @@ The tooling remains the same as before the repository split:
   changes under `~/.local/state/factory/backups`, and leaves auth files alone.
 - Herdr through its official installer, with its Codex integration.
 - The [shared skill bundle](skills.md): our own Herdr/Codex skills and the pinned
-  Matt Pocock collection. Requires Python's PyYAML (`python3-yaml` on Ubuntu,
+  native Matt Pocock plugin. Requires Python's PyYAML (`python3-yaml` on Ubuntu,
   `python-yaml` on Arch), installed by the Ubuntu tool step.
 
 The environment's AppArmor policy remains named `dotfiles-bwrap` for compatibility

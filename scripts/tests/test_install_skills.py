@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import tempfile
 import unittest
 
@@ -27,7 +28,9 @@ class InstallSkillsTest(unittest.TestCase):
             'HOME': str(self.home), 'XDG_CONFIG_HOME': str(self.home / 'config'),
             'XDG_DATA_HOME': str(self.home / 'data'), 'XDG_STATE_HOME': str(self.home / 'state'),
             'GIT_CONFIG_GLOBAL': str(self.home / 'gitconfig'), 'GIT_CONFIG_NOSYSTEM': '1',
+            'CODEX_HOME': str(self.home / 'codex'),
         }
+        (self.home / 'codex').mkdir()
         (self.home / 'gitconfig').write_text(
             f'[url "{self.upstream.as_uri()}"]\n\tinsteadOf = {REPOSITORY}\n')
         self.git('init', '--quiet')
@@ -38,6 +41,14 @@ class InstallSkillsTest(unittest.TestCase):
         self.source = source / 'SKILL.md'
         self.source.write_text('First skill version\n')
         (self.upstream / 'LICENSE').write_text('Test license\n')
+        metadata = self.upstream / '.claude-plugin'
+        metadata.mkdir()
+        (metadata / 'marketplace.json').write_text(json.dumps(dict(
+            name='fixture-skills', owner=dict(name='Fixture'),
+            plugins=[dict(name='external-test', source='./')])))
+        (metadata / 'plugin.json').write_text(json.dumps(dict(
+            name='external-test', version='1.0.0', description='Fixture skills',
+            skills=['./skills/example'])))
         self.git('add', '.')
         self.git('commit', '--quiet', '-m', 'First')
         self.first = self.git('rev-parse', 'HEAD')
@@ -73,6 +84,8 @@ class InstallSkillsTest(unittest.TestCase):
         self.assertEqual((link / 'example/SKILL.md').read_text(), 'First skill version\n')
         self.assertEqual((link.resolve().parent / 'LICENSE').read_text(), 'Test license\n')
         self.assertTrue((self.skills / 'herdr-nvim/scripts/show_file.py').is_file())
+        self.assertEqual((self.home / '.local/bin/sidequestion').resolve(),
+                         ROOT / 'skills/sidequestion/scripts/sidequestion.py')
         workers = json.loads((self.home / 'config/factory/config.json').read_text())['workers']
         self.assertTrue(Path(workers['worktrees_root']).is_dir())
         self.assertTrue(workers['yolo'])
@@ -151,6 +164,45 @@ class InstallSkillsTest(unittest.TestCase):
             self.manifest.write_text(yaml.safe_dump(changed))
             self.install(success=False)
             self.assertFalse(self.skills.exists())
+
+    def native_manifest(self, revision):
+        self.write_manifest(revision)
+        manifest = yaml.safe_load(self.manifest.read_text())
+        manifest['external'][0].update(kind='codex-plugin', marketplace='fixture-skills', plugin='external-test')
+        self.manifest.write_text(yaml.safe_dump(manifest))
+
+    @unittest.skipUnless(shutil.which('codex'), 'native plugin check requires Codex')
+    def test_native_plugin_migration_replaces_link_and_updates_same_version_at_new_commit(self):
+        self.install()
+        self.native_manifest(self.first)
+        self.install()
+        self.assertFalse((self.skills / 'external-test').is_symlink())
+        cache = self.home / 'codex/plugins/cache/fixture-skills/external-test/1.0.0'
+        self.assertEqual((cache / 'skills/example/SKILL.md').read_text(), 'First skill version\n')
+        self.assertEqual((cache / 'LICENSE').read_text(), 'Test license\n')
+        backups = list((self.home / 'state/factory/backups').glob('*'))
+        self.install()
+        self.assertEqual(list((self.home / 'state/factory/backups').glob('*')), backups)
+        self.native_manifest(self.second)
+        self.install(success=False)
+        self.install('--replace')
+        self.assertEqual((cache / 'skills/example/SKILL.md').read_text(), 'Second skill version\n')
+        self.write_manifest()
+        self.install()
+        self.assertFalse(cache.exists())
+
+    def test_failed_native_install_keeps_previous_skill_link(self):
+        self.install()
+        previous = (self.skills / 'external-test').readlink()
+        self.native_manifest(self.first)
+        binary = self.home / 'fake-bin'
+        binary.mkdir()
+        stub = binary / 'codex'
+        stub.write_text('#!/bin/sh\nexit 17\n')
+        stub.chmod(0o755)
+        self.env['PATH'] = str(binary) + os.pathsep + self.env['PATH']
+        self.install(success=False)
+        self.assertEqual((self.skills / 'external-test').readlink(), previous)
 
 
 if __name__ == '__main__':

@@ -10,7 +10,7 @@ remain a separate checkout: Factory applies them without owning their contents.
 infra/incus/   Host configuration, image build and recovery instructions
 setup-agent.sh Ubuntu tool installation and explicit user setup commands
 scripts/       agent-env, Codex defaults and their tests
-skills/        Own skills: codex-full-agents and herdr-nvim
+skills/        Own skills: codex-full-agents, herdr-nvim and sidequestion
 skills.yaml    Pinned third-party skill sources (initially Matt Pocock)
 config/        Environment system configuration (AppArmor)
 legacy/        Previous Factory development workflows and their installer/tests

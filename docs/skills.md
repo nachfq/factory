@@ -6,12 +6,13 @@ Factory owns both our skills and the list of external skills to install:
 skills/
   codex-full-agents/   Independent Codex sessions, branches and Herdr tabs
   herdr-nvim/          Selection reading, file display and temporary highlights
+  sidequestion/        Temporary Herdr/Codex detours and explicit summary handoff
 skills.yaml           External repositories, exact revisions and skill paths
 ```
 
-Our two skills moved from `harness-fq` and the local `herdr-codex.nvim` checkout.
-The editor plugin remains a separate project. Personal desktop notes and
-`sidequestion` remain in `harness-fq` and are not part of the common image.
+Our skills moved from `harness-fq` and the local `herdr-codex.nvim` checkout.
+The editor plugin remains a separate project. Personal desktop notes remain in
+`harness-fq`; all three generic skills belong to the common image.
 
 ## Install
 
@@ -23,26 +24,43 @@ cd /path/to/factory
 ./setup-agent.sh install-skills
 ```
 
-Requires Git, Python 3.10+ and PyYAML (`python3-yaml` on Ubuntu; `python-yaml`
-on Arch). The Ubuntu tool installation includes that package. The image recipe
+Requires Git, Python 3.11+, Codex with native plugin commands, and PyYAML
+(`python3-yaml` on Ubuntu; `python-yaml` on Arch). The Ubuntu tool installation
+includes that package. The image recipe
 runs this command after installing tools and applying dotfiles.
 
-Own skills link directly from this checkout into `~/.agents/skills/`. External
-repositories are fetched at the exact commit in `skills.yaml`, under
-`${XDG_DATA_HOME:-~/.local/share}/factory/skill-sources/NAME/REVISION/`.
-The configured `path` links into the same skills directory. A path may identify
-one skill or a directory containing a collection. Upstream licenses, plugin
-metadata and skill invocation policies remain in their original checkout.
-This currently preserves the `mattpocock-skills:` namespace and all 38 skills
-from the existing local installation, pinned to
-`59db609eb1e18aaf59b63284d0e52255aff0c63c`.
+Own skills link directly from this checkout into `~/.agents/skills/`.
+The `sidequestion` helper also links into `~/.local/bin/`. Both are managed by
+the same installer, which preserves an older command symlink with `--replace`.
 
-Third-party source is not copied into Factory's Git history. Sources live in
-the data directory rather than a cache, so cleaning the image's cache preserves
-installed skill targets. GitHub/Codex logins are not needed for public sources
-and are never included in the bundle.
+Matt is installed with Codex's native plugin manager, using the upstream
+marketplace and plugin manifests. The equivalent commands for the current pin
+are:
 
-For the initial migration of the old editor/Matt symlinks, or when updating an
+```bash
+codex plugin marketplace add https://github.com/mattpocock/skills.git --ref 59db609eb1e18aaf59b63284d0e52255aff0c63c
+codex plugin add mattpocock-skills@mattpocock
+```
+
+Codex records the marketplace ref in its normal configuration and owns the
+installed plugin/cache. Factory does not vendor or rewrite Matt's skills.
+This loads the 27 skills declared by the author's plugin; the former raw
+repository link exposed 38, including skills outside that published selection.
+The native installation keeps the `mattpocock-skills:` namespace and upstream
+invocation policies. The old Factory-managed Matt link is removed only after
+the native install succeeds, so it does not create duplicate skill entries.
+
+External entries without `kind: codex-plugin` remain ordinary skill sources.
+They are fetched at the manifest's exact commit, under
+`${XDG_DATA_HOME:-~/.local/share}/factory/skill-sources/NAME/REVISION/`, and the
+configured `path` is linked into the skills directory. A path may identify one
+skill or a collection. Upstream licenses and metadata remain in that checkout.
+
+Third-party source stays out of Factory's Git history. Both native plugin data
+and ordinary sources survive the image recipe's cache cleanup. Public sources
+need no GitHub/Codex login; credentials are never included in the bundle.
+
+For the initial migration of old skill/command symlinks, or when updating an
 external revision:
 
 ```bash
@@ -50,11 +68,14 @@ external revision:
 ```
 
 `--replace` preserves conflicting symlinks under
-`~/.local/state/factory/backups/`; it refuses real files/directories. All target
+`~/.local/state/factory/backups/`; it refuses real files/directories. Native
+plugin changes also preserve a private copy of the existing Codex configuration.
+Changing a native plugin pin reinstalls that plugin through Codex, including
+when upstream kept the same plugin version across commits. All target
 conflicts are checked before changing links. Existing unrelated skills are
-preserved. Re-running the command reuses a verified clean pinned checkout and
-keeps matching links. Local edits to third-party checkouts cause an error so
-they can be preserved before updating. Skills are available on the next Codex
+preserved. Re-running keeps matching links and installed native plugins.
+Ordinary third-party checkouts are verified clean; local edits cause an error
+so they can be preserved before updating. Skills are available on the next Codex
 turn; an existing image or environment is not automatically updated by a push.
 
 ## Add, remove or update
@@ -72,15 +93,36 @@ For an external skill or collection, add an entry to `skills.yaml` with:
   path: path/to/skill
 ```
 
+For a native plugin, also set `kind: codex-plugin`, `marketplace` and `plugin`,
+as in the Matt entry. Factory invokes Codex to manage that installation.
+
 Pin updates by changing `revision`, running `install-skills --replace`, and
 testing the intended behavior before committing. A rollback uses the previous
-manifest revision and the same command. Retired revisions remain on disk until
-explicit cleanup; running sessions can still refer to them.
+manifest revision and the same command. Ordinary source revisions remain on
+disk until explicit cleanup. Codex manages the lifetime of native plugin caches.
 
 Remove an entry or own skill and rerun the installer. It removes only retired
-links recorded by its previous install that still point at the managed source;
-it preserves replacements and unrelated skills. Its local record is
-`~/.local/state/factory/skills.json`.
+links that still point at its recorded managed source. Retired native plugins
+are removed only when their marketplace source/ref still matches the managed
+record. Replacements and unrelated skills are preserved. Local records live in
+`~/.local/state/factory/skills.json` and `plugins.json`.
+
+## Side questions
+
+Invoke `$sidequestion` to open a temporary fork in another Herdr tab. It shares
+its parent's checkout and discussion context. The detour sends a summary back
+only when requested. Exiting the fork or closing its tab removes only that
+temporary transcript; the parent remains. Runtime metadata stays under
+`XDG_RUNTIME_DIR` (or the system temporary directory), using the existing
+`harness-sidequestions-UID` name for compatibility.
+
+```bash
+sidequestion open --parent "$CODEX_THREAD_ID" --cwd "$PWD" "Explain this trade-off"
+sidequestion handoff "The requested summary"
+```
+
+The helper requires a local Herdr session and the Codex CLI's fork/resume/queue
+commands. Installing it does not create a fork or start an agent.
 
 ## Full agents and editor integration
 
@@ -108,3 +150,6 @@ python3 -m unittest discover -s scripts/tests -v
 Installer tests use temporary homes and a real local Git repository, with no
 public network or live credentials. They exercise pinned fetches, revisions,
 backups, conflicts, retirement, modified sources and preference migration.
+When Codex is installed, native plugin tests use the same local Git fixture to
+verify migration, pinned updates and retirement without public network access.
+The sidequestion tests cover fork identity, explicit handoff and child cleanup.

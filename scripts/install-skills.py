@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 
 try:
     import yaml
@@ -40,6 +41,14 @@ def read_manifest(path):
         if not isinstance(name, str) or not re.fullmatch(r'[a-z0-9][a-z0-9-]*', name) or name in names:
             raise ValueError(f'Invalid or duplicate skill name: {name}')
         names.add(name)
+        kind = entry.get('kind', 'skills')
+        if kind not in ('skills', 'codex-plugin'):
+            raise ValueError(f'{name}: unknown installation kind: {kind}')
+        if kind == 'codex-plugin':
+            for field in ['marketplace', 'plugin']:
+                value = entry.get(field, '')
+                if not isinstance(value, str) or not re.fullmatch(r'[a-z0-9][a-z0-9-]*', value):
+                    raise ValueError(f'{name}: invalid {field}')
         repository = entry.get('repository', '')
         if not isinstance(repository, str) or not re.fullmatch(
                 r'https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\.git', repository):
@@ -125,19 +134,77 @@ def prepare_workers(config, data):
     print(f'Created worker preferences: {target}')
 
 
+def install_plugins(entries, previous, codex_home, backup, replace):
+    if not entries and not previous:
+        return
+    if not shutil.which('codex'):
+        raise ValueError('Install Codex before installing its native plugins')
+    config_file = codex_home / 'config.toml'
+    config = tomllib.loads(config_file.read_text()) if config_file.exists() else {}
+    marketplaces = config.get('marketplaces', {})
+    for entry in entries:
+        current = marketplaces.get(entry['marketplace'])
+        if current and (current.get('source') != entry['repository'] or current.get('ref') != entry['revision']):
+            if not replace:
+                raise ValueError(f'{entry["marketplace"]}: source/ref differs; use --replace to update')
+    def command(*args):
+        result = subprocess.run(['codex', 'plugin', *args, '--json'], check=True,
+                                capture_output=True, text=True)
+        return json.loads(result.stdout)
+
+    desired = {entry['plugin'] + '@' + entry['marketplace']: entry for entry in entries}
+    installed_ids = {item['pluginId'] for item in command('list')['installed'] if item.get('enabled')}
+    pending = {selector: entry for selector, entry in desired.items()
+               if selector not in installed_ids or
+               marketplaces.get(entry['marketplace'], {}).get('source') != entry['repository'] or
+               marketplaces.get(entry['marketplace'], {}).get('ref') != entry['revision']}
+    retired = {selector: entry for selector, entry in previous.items() if selector not in desired}
+    if not pending and not retired:
+        return desired
+    if config_file.exists():
+        backup.mkdir(parents=True, exist_ok=True)
+        saved = backup / 'codex-config.toml'
+        shutil.copy2(config_file, saved)
+        saved.chmod(0o600)
+    for selector, entry in pending.items():
+        current = marketplaces.get(entry['marketplace'])
+        if current and (current.get('source') != entry['repository'] or current.get('ref') != entry['revision']):
+            installed = command('list', '--marketplace', entry['marketplace'])['installed']
+            if any(item['pluginId'] == selector for item in installed):
+                command('remove', selector)
+            command('marketplace', 'remove', entry['marketplace'])
+        command('marketplace', 'add', entry['repository'], '--ref', entry['revision'])
+        marketplaces[entry['marketplace']] = dict(source=entry['repository'], ref=entry['revision'])
+        installed = command('add', selector)
+        print(f'Installed native plugin: {selector} ({installed.get("version", "unknown version")})')
+    for selector, entry in retired.items():
+        current = marketplaces.get(entry['marketplace'], {})
+        if selector not in desired and current.get('source') == entry['repository'] and current.get('ref') == entry['revision']:
+            command('remove', selector)
+    return desired
+
+
 def install(args):
     entries = read_manifest(args.manifest)
     data = directory('XDG_DATA_HOME', Path.home() / '.local/share')
     state = directory('XDG_STATE_HOME', Path.home() / '.local/state') / 'factory'
     config = directory('XDG_CONFIG_HOME', Path.home() / '.config')
     skills = args.skills_dir.expanduser().absolute()
+    commands = args.bin_dir.expanduser().absolute()
+    codex_home = directory('CODEX_HOME', Path.home() / '.codex')
     sources = data / 'factory/skill-sources'
     links = {skills / p.name: p.resolve() for p in sorted((ROOT / 'skills').iterdir())
              if (p / 'SKILL.md').is_file()}
+    sidequestion = ROOT / 'skills/sidequestion/scripts/sidequestion.py'
+    if sidequestion.is_file():
+        links[commands / 'sidequestion'] = sidequestion
+    plugins = [entry for entry in entries if entry.get('kind') == 'codex-plugin']
     for entry in entries:
         target = skills / entry['name']
         if target in links:
             raise ValueError(f'External name conflicts with an own skill: {target.name}')
+        if entry.get('kind') == 'codex-plugin':
+            continue
         source = sources / entry['name'] / entry['revision'] / entry['path']
         links[target] = source
     preflight(links, args.replace)
@@ -146,10 +213,13 @@ def install(args):
     if args.dry_run:
         for target, source in links.items():
             print(f'Link {target} -> {source}')
+        for entry in plugins:
+            print(f'Native plugin {entry["plugin"]}@{entry["marketplace"]} at {entry["revision"]}')
         print('Dry run: no files changed or sources downloaded.')
         return
     for entry in entries:
-        links[skills / entry['name']] = checkout_source(entry, sources)
+        if entry.get('kind') != 'codex-plugin':
+            links[skills / entry['name']] = checkout_source(entry, sources)
     preflight(links, args.replace)
     ledger = state / 'skills.json'
     previous = json.loads(ledger.read_text()) if ledger.exists() else {}
@@ -161,6 +231,11 @@ def install(args):
             if not isinstance(json.loads(path.read_text()), dict):
                 raise ValueError(f'Expected a configuration object: {path}')
     backup = state / 'backups' / ('skills-' + datetime.now().strftime('%Y%m%d-%H%M%S-%f'))
+    plugin_record = state / 'plugins.json'
+    previous_plugins = json.loads(plugin_record.read_text()) if plugin_record.exists() else {}
+    if not isinstance(previous_plugins, dict):
+        raise ValueError(f'Invalid managed plugin record: {plugin_record}')
+    desired_plugins = install_plugins(plugins, previous_plugins, codex_home, backup, args.replace) or {}
     for target, source in links.items():
         if target.is_symlink() and target.resolve() == source:
             continue
@@ -169,16 +244,17 @@ def install(args):
             target.rename(backup / target.name)
             print(f'Backed up {target} under {backup}')
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.symlink_to(source, target_is_directory=True)
+        target.symlink_to(source, target_is_directory=source.is_dir())
         print(f'Linked {target} -> {source}')
     for target_name, source_name in previous.items():
         target = Path(target_name)
-        if target.parent == skills and target not in links and target.is_symlink() and target.readlink() == Path(source_name):
+        if target.parent in [skills, commands] and target not in links and target.is_symlink() and target.readlink() == Path(source_name):
             target.unlink()
             print(f'Removed retired managed link: {target}')
     prepare_workers(config, data)
     state.mkdir(parents=True, exist_ok=True)
     ledger.write_text(json.dumps({str(k): str(v) for k, v in links.items()}, indent=2) + '\n')
+    plugin_record.write_text(json.dumps(desired_plugins, indent=2) + '\n')
     print('Installed skill bundle. Skills are available on your next Codex turn.')
 
 
@@ -186,6 +262,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest', type=Path, default=ROOT / 'skills.yaml')
     parser.add_argument('--skills-dir', type=Path, default=Path.home() / '.agents/skills')
+    parser.add_argument('--bin-dir', type=Path, default=Path.home() / '.local/bin')
     parser.add_argument('--replace', action='store_true', help='Back up and replace conflicting symlinks')
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
