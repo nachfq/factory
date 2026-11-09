@@ -4,6 +4,7 @@ import argparse
 import fcntl
 import json
 import os
+import re
 from pathlib import Path
 import resource
 import subprocess
@@ -85,11 +86,50 @@ def snapshot(previous, host_paths, measure=collect_instance):
     return result
 
 
+def statsd_payload(result):
+    """Only publish new, successful samples; never freshen an old guest value."""
+    lines = []
+    for fs in result["filesystems"]:
+        if fs["path"] == "/":
+            for key in ("used", "available", "reserved"):
+                gib = fs[key+"_bytes"] / 1024**3
+                lines.append(f"factory.host.root.{key}:{gib:.9f}|g")
+    for item in result["instances"]:
+        if (item["status"] != "Running" or item.get("error")
+                or "used_bytes" not in item
+                or item.get("measured_at", 0) < result["updated_at"]):
+            continue
+        name = item["name"]
+        if not re.fullmatch(r"[a-zA-Z0-9_-]+", name):
+            raise ValueError("Unsafe instance name for StatsD")
+        gib = item["used_bytes"] / 1024**3
+        lines.append(f"factory.incus.{name}.used:{gib:.9f}|g|#units=GiB,family=incus_storage,name={name}")
+    failures = sum(bool(item.get("error")) for item in result["instances"])
+    lines.append(f"factory.collector.failures:{failures}|g|#units=instances,family=storage_collection,name=failed_scans")
+    return ("\n".join(lines)+"\n").encode("ascii")
+
+
+def publish_statsd(result):
+    payload = statsd_payload(result)
+    # Netdata can discard short TCP connections at EOF. StatsD's usual UDP
+    # transport avoids that issue; each small datagram stays below the MTU.
+    # Delivery is best-effort, with no application-level acknowledgement.
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connection:
+        connection.settimeout(2)
+        connection.connect(("127.0.0.1", 8125))
+        for line in payload.splitlines(keepends=True):
+            if len(line) > 1200:
+                raise ValueError("StatsD line exceeds datagram budget")
+            connection.send(line)
+    return len(payload)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path,
                         default=Path(__file__).parent / "dashboard" / "incus-storage.json")
     parser.add_argument("--host-path", action="append", default=None)
+    parser.add_argument("--statsd", action="store_true", help="Publish fresh samples to local Netdata")
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     # One job at a time; no backlog when an earlier scan takes longer.
@@ -105,6 +145,14 @@ def main():
         except (FileNotFoundError, ValueError):
             previous = {}
         result = snapshot(previous, args.host_path or ["/"])
+        if args.statsd:
+            publish_start = time.monotonic()
+            try:
+                result["statsd_bytes_sent"] = publish_statsd(result)
+            except (OSError, ValueError) as error:
+                # Keep the local snapshot even if Netdata is restarting/down.
+                result["statsd_error"] = str(error)
+            result["benchmark"]["statsd_publish_ms"] = (time.monotonic()-publish_start)*1000
         own = resource.getrusage(resource.RUSAGE_SELF)
         children = resource.getrusage(resource.RUSAGE_CHILDREN)
         result["benchmark"].update(wall_seconds=time.monotonic()-start,
@@ -120,6 +168,9 @@ def main():
         os.chmod(temporary, 0o644)
         os.replace(temporary, args.output)
         print(json.dumps(result["benchmark"], indent=2))
+        if "statsd_error" in result:
+            print("Netdata publishing failed: " + result["statsd_error"])
+            raise SystemExit(1)
 
 
 if __name__ == "__main__":

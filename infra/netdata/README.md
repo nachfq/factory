@@ -32,7 +32,48 @@ seconds, and disables ML/anomaly detection and alerts. One database tier has a
 expires old samples. The size target is soft, and metadata/logs add overhead.
 Configuration and metrics persist in Compose-managed volumes.
 
-## Minimal resource view
+## Native Netdata resource view
+
+Disk samples are published by the same host collector to Netdata's built-in
+StatsD listener, bound only to `127.0.0.1:8125/UDP`. No additional service or
+container agent is needed. CPU/RAM continue using the existing collectors.
+
+Open the main Netdata page, then the **Metrics**/node charts and **StatsD**:
+
+- `host_storage`: root filesystem used, available and reserved space in one
+  stacked GiB chart, context `statsd_factory.host_disk_space`.
+- `incus_storage`: one GiB gauge per running Factory instance, with its name as
+  the dimension. Contexts are `statsd_factory.incus.INSTANCE.used_gauge`.
+- `storage_collection`: count of failed guest scans, expected to be zero.
+
+The standard CPU/RAM contexts are `system.cpu`, `system.ram`, `cgroup.cpu` and
+`cgroup.mem_usage`. Container CPU uses 100% per core; host CPU uses 100% for the
+whole machine. For RAM choose `used` on the host and `ram` in containers to
+exclude reclaimable host cache and guest swap respectively.
+
+For a compact layout, create **Dashboards → + → Resources**, add those host
+contexts and the desired container contexts, then **Save**. On shared cgroup
+charts select only the `dev-*` instances (exclude Docker and `lxc.monitor.*`)
+and group by instance when comparing environments. A newly created environment
+gets its own disk chart in StatsD after the next scan; a layout selecting
+individual contexts needs that new chart added. The native dashboard layout is
+configured through the browser, separately from the server's collector config.
+
+Disk history starts when publication is enabled and uses the existing Netdata
+database/retention. Gauges retain the last value between ten-minute scans.
+Instance gauges are refreshed only after successful fresh scans. Stopped,
+deleted or failed instances stop publishing, and their private charts become
+obsolete after twenty minutes without a sample. Historical data still follows
+Netdata retention; chart cleanup is not an immediate history purge. At most
+200 private charts are allowed. The static host chart retains its last value
+if the collector stops; its continuously drawn line is not proof of a new scan.
+Check the cron log/snapshot timestamp when diagnosing freshness.
+
+UDP delivery is best-effort, with no application acknowledgement. One small
+datagram per metric stays below 1200 bytes; transport errors are logged without
+discarding the local snapshot. Do not expose port 8125 on LAN/Tailscale.
+
+### Previous static view
 
 Open `http://TAILSCALE_IP:19999/factory/index.html` for host CPU/RAM history and
 disk usage, followed by the same metrics for each Factory Incus environment.
@@ -55,7 +96,7 @@ Incus installed:
 
 ```bash
 cd ~/services/netdata
-ionice -c 3 python3 collect-storage.py
+ionice -c 3 python3 collect-storage.py --statsd
 ```
 
 It selects instances tagged `user.agent-env=true`, then sequentially executes
@@ -70,7 +111,8 @@ blocks are not apportioned between instances.
 Host totals/free space come from `statvfs('/')`, so the shared free space is
 shown once. ext4's reserved space is displayed separately. For additional mounted
 filesystems use e.g. `--host-path / --host-path /mnt/media` in the scheduled
-command. Unmounted disks are not measured.
+command. Unmounted disks are not measured. The native StatsD host chart covers
+`/`; extra filesystem paths currently appear only in the JSON/static view.
 
 The collector has a nonblocking lock, a two-minute guest `du` timeout and a
 140-second Incus command timeout. Stopped guests are never started. A failed
@@ -84,14 +126,14 @@ existing crontab entries and replaces only this job's marked line:
 ```bash
 {
   crontab -l 2>/dev/null | sed '/# factory-incus-storage$/d'
-  printf '%s\n' '*/10 * * * * cd "$HOME/services/netdata" && /usr/bin/ionice -c 3 /usr/bin/python3 collect-storage.py > .collector-last-run.json 2>&1 # factory-incus-storage'
+  printf '%s\n' '*/10 * * * * cd "$HOME/services/netdata" && /usr/bin/ionice -c 3 /usr/bin/python3 collect-storage.py --statsd > .collector-last-run.json 2>&1 # factory-incus-storage'
 } | crontab -
 ```
 
 The runtime snapshot `dashboard/incus-storage.json`, lock and last-run log are
 ignored by Git. The page marks disk readings older than 18 minutes as stale.
-The collector produces current disk readings; disk history is not ingested into
-Netdata. CPU/RAM history comes from the existing Netdata database.
+Without `--statsd` the collector only updates that local snapshot. With it,
+fresh disk samples are also recorded in Netdata for native charts and history.
 
 ### Measure overhead
 
@@ -114,6 +156,14 @@ The largest individual process peaked near 28 MiB RSS; the conservative sum of
 process peaks was about 65 MiB, transiently. The first scan read 3.35 MiB from
 physical storage; repeated warm scans read zero. These are measurements of the
 current working cache, not a cold-cache or large-project guarantee.
+
+With native publication enabled, sending seven loopback datagrams (about 500
+bytes total) took 0.24 ms; the entire warm scan remained about 1.15 s / 1.17
+CPU-seconds. Thirty-second cgroup measurements of the running Netdata service
+were 3.61% of one core / 120.0 MiB before, and 2.58% / 95.7 MiB after integration.
+The service restarted and its cache/workload varied, so the lower second reading
+is not a measured reduction or an isolated estimate of StatsD's cost. No obvious
+increase appeared in these short observations; the service limits are unchanged.
 
 Validate the storage accounting/failure behavior and chart transformations:
 
@@ -147,3 +197,4 @@ crontab -l | sed '/# factory-incus-storage$/d' | crontab -
 - [Official Docker installation](https://learn.netdata.cloud/docs/netdata-agent/installation/docker)
 - [LXC/Incus collection](https://www.netdata.cloud/integrations/data-collection/containers-and-vms/lxc-containers/)
 - [Database configuration](https://learn.netdata.cloud/docs/netdata-agent/configuration/database)
+- [StatsD collection and chart configuration](https://learn.netdata.cloud/docs/collecting-metrics/statsd)

@@ -1,8 +1,11 @@
 """Exercise stale values, removal and filesystem accounting without scanning guests."""
 import importlib.util
+import contextlib
+import io
 import json
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -12,6 +15,39 @@ spec.loader.exec_module(collector)
 
 
 class StorageTests(unittest.TestCase):
+    def test_publish_failure_preserves_snapshot_and_exits_nonzero(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "dashboard" / "incus-storage.json"
+            data = dict(filesystems=[], instances=[], benchmark={"instances": []})
+            with patch("sys.argv", ["collector", "--statsd", "--output", str(output)]), \
+                 patch.object(collector, "snapshot", return_value=data), \
+                 patch.object(collector, "publish_statsd", side_effect=OSError("collector unreachable")), \
+                 patch.object(collector.os, "nice"), contextlib.redirect_stdout(io.StringIO()):
+                with self.assertRaises(SystemExit) as error:
+                    collector.main()
+            self.assertEqual(error.exception.code, 1)
+            self.assertEqual(json.loads(output.read_text())["statsd_error"], "collector unreachable")
+
+    def test_publish_fresh_samples_only(self):
+        def item(name, **kwargs):
+            return dict(name=name, status="Running", used_bytes=1073741824,
+                        measured_at=101, **kwargs)
+        items = [item("fresh"), item("failed", error="du failed"), item("old"), item("stopped")]
+        items[2]["measured_at"] = 99
+        items[3]["status"] = "Stopped"
+        result = dict(updated_at=100, filesystems=[dict(path="/", used_bytes=1073741824,
+                      available_bytes=2147483648, reserved_bytes=536870912)], instances=items)
+        payload = collector.statsd_payload(result).decode()
+        self.assertIn("factory.incus.fresh.used:1.000000000|g", payload)
+        self.assertIn("factory.host.root.available:2.000000000|g", payload)
+        self.assertIn("factory.host.root.reserved:0.500000000|g", payload)
+        self.assertIn("factory.collector.failures:1|g", payload)
+        for name in ("failed", "old", "stopped"):
+            self.assertNotIn(f"factory.incus.{name}.used", payload)
+        items[0]["name"] = "bad\ninjected:99|g"
+        with self.assertRaises(ValueError):
+            collector.statsd_payload(result)
+
     def test_stopped_failed_deleted_and_unmanaged(self):
         def instance(name, status="Running", managed=True):
             return {"name": name, "status": status,
