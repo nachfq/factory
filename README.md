@@ -8,6 +8,7 @@ remain a separate checkout: Factory applies them without owning their contents.
 
 ```text
 infra/incus/   Host configuration, image build and recovery instructions
+infra/netdata/ Optional host monitoring dashboard, separate from agent images
 setup-agent.sh Ubuntu tool installation and explicit user setup commands
 scripts/       agent-env, Codex defaults and their tests
 skills/        Own skills: codex-full-agents, herdr-nvim and sidequestion
