@@ -69,9 +69,11 @@ python3 make-dashboard.py --url http://TAILSCALE_IP:19999 --output ~/Downloads/R
 In the dashboard editor, use the **up-arrow/import** button beside its name,
 select `Recursos.json`, then **Save**. The file contains three host charts and
 one CPU/RAM/disk row per current Factory instance. Regenerate and reimport it
-after adding/removing environments. Import replaces the current layout; export
-it first if you want to keep manual changes. Generated files include instance
-names and should stay outside the public checkout (`Recursos.json` is ignored).
+after adding/removing environments. Each row uses three four-track cards in
+Netdata's twelve-track grid, fitting the available width. Import replaces the
+current layout; export it first if you want to keep manual changes. Generated
+files include instance names and should stay outside the public checkout
+(`Recursos.json` is ignored).
 The original exported dashboard remains untouched.
 
 `native-card-template.json` preserves the standard chart attributes exported by

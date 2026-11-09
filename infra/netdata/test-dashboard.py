@@ -21,6 +21,16 @@ class DashboardTests(unittest.TestCase):
         d = module.build_dashboard(template, snapshot, charts)
         self.assertEqual(len(d["cards"]), 6)
         self.assertEqual({x["id"] for x in d["layout"]["A"]}, set(d["cards"]))
+        rectangles = d["layout"]["A"]
+        for rectangle in rectangles:
+            self.assertGreaterEqual(rectangle["left"], 0)
+            self.assertLessEqual(rectangle["left"]+rectangle["width"], 12)
+        for index, first in enumerate(rectangles):
+            for second in rectangles[index+1:]:
+                self.assertTrue(first["left"]+first["width"] <= second["left"]
+                    or second["left"]+second["width"] <= first["left"]
+                    or first["top"]+first["height"] <= second["top"]
+                    or second["top"]+second["height"] <= first["top"])
         cpu = next(c for c in d["cards"].values() if c["contextScope"] == ["cgroup.cpu"])
         self.assertEqual(cpu["selectedInstances"], ["cgroup_dev-example.cpu"])
         self.assertEqual((cpu["groupBy"], cpu["aggregationMethod"]), (["selected"], "sum"))

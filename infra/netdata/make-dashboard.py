@@ -34,8 +34,10 @@ def build_dashboard(template, snapshot, charts):
                         groupBy=[group_by], aggregationMethod="sum", chartType=chart_type,
                         nodesScope=[], selectedNodes=[], selectedLabels=[], nodeFilters={})
             dashboard["cards"][card_id] = card
-            dashboard["layout"]["A"].append(dict(id=card_id, left=column*10, top=row*10,
-                width=10, height=9, minWidth=1, minHeight=1, moved=False))
+            # Native dashboard grids have 12 tracks; three cards must use four
+            # each. Default single-card width 10 would overflow a three-card row.
+            dashboard["layout"]["A"].append(dict(id=card_id, left=column*4, top=row*10,
+                width=4, height=9, minWidth=1, minHeight=1, moved=False))
     return dashboard
 
 
