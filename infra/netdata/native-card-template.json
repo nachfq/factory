@@ -1,0 +1,87 @@
+{
+  "id": null,
+  "type": "chart",
+  "hideTitle": false,
+  "hideName": false,
+  "hideUnits": false,
+  "customTitle": "",
+  "contextScope": [],
+  "nodesScope": [],
+  "nodeFilters": {},
+  "spreadGroupId": null,
+  "spreadAxis": null,
+  "spreadLabelKey": null,
+  "spreadKey": null,
+  "valueFocus": null,
+  "aggregationMethod": "avg",
+  "groupBy": [
+    "dimension"
+  ],
+  "groupByLabel": [],
+  "postAggregationMethod": "avg",
+  "postGroupBy": [
+    "selected"
+  ],
+  "postGroupByLabel": [],
+  "groupingMethod": "average",
+  "groupingTime": 0,
+  "chartType": "stacked",
+  "chartLibrary": "dygraph",
+  "selectedDimensions": [],
+  "selectedLabels": [],
+  "selectedNodes": [],
+  "selectedInstances": [],
+  "sparkline": false,
+  "selectedLegendDimensions": [],
+  "showingInfo": false,
+  "dimensionsSortBy": [
+    {
+      "id": "contribution",
+      "desc": true
+    }
+  ],
+  "instancesSortBy": [
+    {
+      "id": "contribution",
+      "desc": true
+    }
+  ],
+  "nodesSortBy": [
+    {
+      "id": "contribution",
+      "desc": true
+    }
+  ],
+  "groupBySortBy": [],
+  "labelsSortBy": [
+    {
+      "id": "contribution",
+      "desc": true
+    }
+  ],
+  "dimensionsSort": "default",
+  "nodesExpanded": {},
+  "groupByExpanded": {},
+  "labelsExpanded": {},
+  "expanded": false,
+  "expandedHeight": 300,
+  "gaugeThresholds": null,
+  "overlays": {},
+  "title": "",
+  "description": null,
+  "showPostAggregations": false,
+  "desiredUnits": [
+    "auto"
+  ],
+  "valueRange": [
+    null,
+    null
+  ],
+  "staticValueRange": null,
+  "enabledYAxis": true,
+  "enabledXAxis": true,
+  "legend": true,
+  "staticFractionDigits": null,
+  "selectedNodeLabelsFilter": [],
+  "points": null
+}

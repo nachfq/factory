@@ -59,6 +59,27 @@ gets its own disk chart in StatsD after the next scan; a layout selecting
 individual contexts needs that new chart added. The native dashboard layout is
 configured through the browser, separately from the server's collector config.
 
+To create the complete layout as an importable file instead of adding cards
+manually, run this on any machine that can reach the private Netdata address:
+
+```bash
+python3 make-dashboard.py --url http://TAILSCALE_IP:19999 --output ~/Downloads/Recursos.json
+```
+
+In the dashboard editor, use the **up-arrow/import** button beside its name,
+select `Recursos.json`, then **Save**. The file contains three host charts and
+one CPU/RAM/disk row per current Factory instance. Regenerate and reimport it
+after adding/removing environments. Import replaces the current layout; export
+it first if you want to keep manual changes. Generated files include instance
+names and should stay outside the public checkout (`Recursos.json` is ignored).
+The original exported dashboard remains untouched.
+
+`native-card-template.json` preserves the standard chart attributes exported by
+the bundled Netdata UI 7.136.1. The generator uses that native import format,
+stable per-chart IDs and explicit instance selection, so Docker services and
+monitor cgroups are excluded. It performs only HTTP reads and writes a local
+JSON file; it does not change Netdata state or launch a background process.
+
 Disk history starts when publication is enabled and uses the existing Netdata
 database/retention. Gauges retain the last value between ten-minute scans.
 Instance gauges are refreshed only after successful fresh scans. Stopped,
@@ -169,6 +190,7 @@ Validate the storage accounting/failure behavior and chart transformations:
 
 ```bash
 python3 test-storage.py
+python3 test-dashboard.py
 node dashboard/test-metrics.js
 ```
 
