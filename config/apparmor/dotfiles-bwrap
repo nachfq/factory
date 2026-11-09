@@ -1,0 +1,8 @@
+abi <abi/4.0>,
+include <tunables/global>
+
+# Permit Bubblewrap to create its sandbox on Ubuntu 24.04.
+# This profile is stacked with the outer Incus container's confinement.
+profile dotfiles-bwrap /usr/bin/bwrap flags=(unconfined) {
+  userns,
+}

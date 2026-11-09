@@ -122,9 +122,9 @@ The host's SSH login and Tailscale enrollment are also machine-specific.
 
 ## Build the base image
 
-The image recipe lives here; the environment's tools/configuration bootstrap
-still lives in dotfiles during this migration. Both source commits must already
-be pushed, because the builder downloads them from GitHub.
+Factory installs the tools and agent defaults; the selected dotfiles checkout
+supplies editor/shell configuration. Both source commits must already be pushed,
+because the builder downloads them from GitHub.
 
 From a laptop with Factory and dotfiles checkouts:
 
@@ -136,7 +136,13 @@ ssh user@newserver "bash -s -- $dotfiles_revision $factory_revision" < infra/inc
 ```
 
 The script also runs directly on the Incus host with the same two arguments.
-It creates a fresh Ubuntu 24.04 builder, installs the selected dotfiles setup,
+An optional third argument selects another public GitHub HTTPS dotfiles repository;
+the default is `https://github.com/nachfq/dotfiles.git`. That checkout should provide
+`apply.sh apply` for configuration and `apply.sh plugins` for editor dependencies.
+Pinned dotfiles revisions with the previous `setup-agent.sh` interface also work.
+
+It creates a fresh Ubuntu 24.04 builder, checks out both pinned sources, installs
+Factory's tools and applies the selected dotfiles,
 removes credentials/instance identity, stops it and publishes private aliases:
 
 - `agent-base`, the latest successful build;
