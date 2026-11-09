@@ -1,0 +1,12 @@
+description: 'Pilot: block outbound connections to LAN, host, private networks and tailnet'
+egress:
+  - action: reject
+    destination: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,169.254.0.0/16,127.0.0.0/8
+    state: enabled
+ingress:
+  - action: allow
+    source: 10.77.0.1/32
+    protocol: tcp
+    destination_port: "22"
+    state: enabled
+config: {}

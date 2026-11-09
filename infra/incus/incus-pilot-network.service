@@ -1,0 +1,16 @@
+[Unit]
+Description=Allow Incus pilot traffic through Docker forwarding
+Requires=docker.service
+After=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -ec '/usr/sbin/iptables -C DOCKER-USER -i incusbr0 -s 10.77.0.0/24 -m comment --comment incus-agent-pilot -j ACCEPT 2>/dev/null || /usr/sbin/iptables -I DOCKER-USER 1 -i incusbr0 -s 10.77.0.0/24 -m comment --comment incus-agent-pilot -j ACCEPT'
+ExecStart=/bin/sh -ec '/usr/sbin/iptables -C DOCKER-USER -o incusbr0 -d 10.77.0.0/24 -m conntrack --ctstate RELATED,ESTABLISHED -m comment --comment incus-agent-pilot -j ACCEPT 2>/dev/null || /usr/sbin/iptables -I DOCKER-USER 1 -o incusbr0 -d 10.77.0.0/24 -m conntrack --ctstate RELATED,ESTABLISHED -m comment --comment incus-agent-pilot -j ACCEPT'
+ExecStop=-/usr/sbin/iptables -D DOCKER-USER -i incusbr0 -s 10.77.0.0/24 -m comment --comment incus-agent-pilot -j ACCEPT
+ExecStop=-/usr/sbin/iptables -D DOCKER-USER -o incusbr0 -d 10.77.0.0/24 -m conntrack --ctstate RELATED,ESTABLISHED -m comment --comment incus-agent-pilot -j ACCEPT
+
+[Install]
+WantedBy=docker.service

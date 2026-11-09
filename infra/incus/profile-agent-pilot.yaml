@@ -1,0 +1,19 @@
+description: Disposable agent environment pilot; no host home or management sockets
+config:
+  boot.autostart: "false"
+  limits.cpu: "2"
+  limits.memory: 2GiB
+  security.idmap.isolated: "true"
+  security.nesting: "false"
+  security.privileged: "false"
+devices:
+  eth0:
+    name: eth0
+    network: incusbr0
+    security.ipv4_filtering: "true"
+    security.mac_filtering: "true"
+    type: nic
+  root:
+    path: /
+    pool: pilot
+    type: disk

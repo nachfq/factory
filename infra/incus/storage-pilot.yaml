@@ -1,0 +1,3 @@
+description: ""
+config:
+  source: /var/lib/incus/storage-pools/pilot
