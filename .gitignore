@@ -4,3 +4,6 @@ __pycache__/
 .env
 .env.*
 !.env.example
+/infra/netdata/dashboard/incus-storage.json
+/infra/netdata/.collector.lock
+/infra/netdata/.collector-last-run.json

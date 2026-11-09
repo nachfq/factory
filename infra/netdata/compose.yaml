@@ -22,6 +22,7 @@ services:
     volumes:
       - config:/etc/netdata
       - ./netdata.conf:/etc/netdata/netdata.conf:ro
+      - ./dashboard:/usr/share/netdata/web/factory:ro
       - data:/var/lib/netdata
       - cache:/var/cache/netdata
       - /proc:/host/proc:ro

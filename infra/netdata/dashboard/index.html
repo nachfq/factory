@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recursos · Homelab</title>
+<link rel="stylesheet" href="style.css">
+<main>
+  <header>
+    <div><p class="eyebrow">RECURSOS</p><h1 id="hostname">Homelab</h1></div>
+    <div class="controls"><label for="range">Historial</label>
+      <select id="range"><option value="900">15 minutos</option><option value="3600" selected>1 hora</option><option value="21600">6 horas</option><option value="86400">24 horas</option></select>
+      <a href="/" target="_blank" rel="noopener">Netdata ↗</a>
+    </div>
+  </header>
+  <p id="status" role="status">Conectando…</p>
+  <div id="hosts"></div>
+  <h2>Entornos Incus</h2>
+  <div id="instances"></div>
+  <footer>CPU/RAM: muestras cada 5 s, vista cada 15 s. Disco: cada 10 min.
+    El espacio libre es compartido; cada entorno muestra sus archivos, sistema y herramientas.
+    Los contenedores detenidos conservan su última medición de disco.
+  </footer>
+</main>
+<script src="app.js"></script>
+</html>
