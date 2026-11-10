@@ -41,6 +41,9 @@ class InstallSkillsTest(unittest.TestCase):
         source.mkdir(parents=True)
         self.source = source / 'SKILL.md'
         self.source.write_text('First skill version\n')
+        internal = self.upstream / 'skills/internal/SKILL.md'
+        internal.parent.mkdir()
+        internal.write_text('Unpublished skill\n')
         (self.upstream / 'LICENSE').write_text('Test license\n')
         metadata = self.upstream / '.claude-plugin'
         metadata.mkdir()
@@ -85,8 +88,6 @@ class InstallSkillsTest(unittest.TestCase):
         self.assertEqual((link / 'example/SKILL.md').read_text(), 'First skill version\n')
         self.assertEqual((link.resolve().parent / 'LICENSE').read_text(), 'Test license\n')
         self.assertTrue((self.skills / 'herdr-nvim/scripts/show_file.py').is_file())
-        self.assertEqual((self.home / '.local/bin/sidequestion').resolve(),
-                         ROOT / 'skills/sidequestion/scripts/sidequestion.py')
         self.assertEqual((self.skills / 'full-agents').resolve(), ROOT / 'skills/full-agents')
         self.assertFalse((self.skills / 'codex-full-agents').is_symlink())
         self.assertEqual((self.home / '.pi/agent/extensions/pi-agent-messaging').resolve(),
@@ -211,10 +212,12 @@ class InstallSkillsTest(unittest.TestCase):
             self.install(success=False)
             self.assertFalse(self.skills.exists())
 
-    def native_manifest(self, revision):
+    def native_manifest(self, revision, pi_skills=False):
         self.write_manifest(revision)
         manifest = yaml.safe_load(self.manifest.read_text())
         manifest['external'][0].update(kind='codex-plugin', marketplace='fixture-skills', plugin='external-test')
+        if pi_skills:
+            manifest['external'][0]['pi_skills'] = True
         self.manifest.write_text(yaml.safe_dump(manifest))
 
     @unittest.skipUnless(shutil.which('codex'), 'native plugin check requires Codex')
@@ -236,6 +239,52 @@ class InstallSkillsTest(unittest.TestCase):
         self.write_manifest()
         self.install()
         self.assertFalse(cache.exists())
+
+    @unittest.skipUnless(shutil.which('codex'), 'native plugin check requires Codex')
+    def test_pi_published_skills_follow_pin_without_duplicating_codex_skills(self):
+        self.native_manifest(self.first, pi_skills=True)
+        self.install()
+        link = self.home / '.pi/agent/skills/external-test'
+        original = link.readlink()
+        self.assertEqual({p.name for p in link.iterdir()}, {'example'})
+        self.assertEqual((link / 'example/SKILL.md').read_text(), 'First skill version\n')
+        self.assertFalse((self.skills / 'external-test').exists())
+        cache = self.home / 'codex/plugins/cache/fixture-skills/external-test/1.0.0'
+        self.assertTrue((cache / 'skills/example/SKILL.md').is_file())
+        self.install()
+        self.assertEqual(link.readlink(), original)
+        self.assertFalse((self.home / 'state/factory/backups').exists())
+        self.native_manifest(self.second, pi_skills=True)
+        self.install(success=False)
+        self.assertEqual(link.readlink(), original)
+        self.install('--replace')
+        self.assertEqual((link / 'example/SKILL.md').read_text(), 'Second skill version\n')
+        self.assertEqual((original / 'example/SKILL.md').read_text(), 'First skill version\n')
+        self.write_manifest()
+        self.install()
+        self.assertFalse(link.is_symlink())
+        self.assertTrue(original.is_dir())
+
+    def test_pi_published_paths_cannot_escape_upstream_skills(self):
+        metadata = self.upstream / '.claude-plugin/plugin.json'
+        manifest = json.loads(metadata.read_text())
+        manifest['skills'] = ['../outside']
+        metadata.write_text(json.dumps(manifest))
+        self.git('commit', '--quiet', '-am', 'Invalid published path fixture')
+        self.native_manifest(self.git('rev-parse', 'HEAD'), pi_skills=True)
+        self.install(success=False)
+        self.assertFalse(self.skills.exists())
+        self.assertFalse((self.home / '.pi').exists())
+
+    def test_pi_skill_conflict_fails_before_fetch_and_preserves_personal_files(self):
+        self.native_manifest(self.first, pi_skills=True)
+        conflict = self.home / '.pi/agent/skills/external-test'
+        conflict.mkdir(parents=True)
+        (conflict / 'personal').write_text('Keep me\n')
+        self.install('--replace', success=False)
+        self.assertEqual((conflict / 'personal').read_text(), 'Keep me\n')
+        self.assertFalse((self.home / 'data').exists())
+        self.assertFalse(self.skills.exists())
 
     def test_failed_native_install_keeps_previous_skill_link(self):
         self.install()

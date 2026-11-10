@@ -6,7 +6,6 @@ Factory owns both our skills and the list of external skills to install:
 skills/
   full-agents/         Shared Pi/Codex workflow; Pi messaging validated, mixed blocked
   herdr-nvim/          Selection reading, file display and temporary highlights
-  sidequestion/        Temporary Herdr/Codex detours and explicit summary handoff
 skills.yaml           External repositories, exact revisions and skill paths
 ```
 
@@ -31,8 +30,6 @@ includes that package. The image recipe
 runs this command after installing tools and applying dotfiles.
 
 Own skills link directly from this checkout into `~/.agents/skills/`.
-The `sidequestion` helper also links into `~/.local/bin/`. Both are managed by
-the same installer, which preserves an older command symlink with `--replace`.
 `full-agents` is an ordinary skill; it adds no wrapper command. The installer also
 links `extensions/pi-agent-messaging/` into
 `${PI_CODING_AGENT_DIR:-~/.pi/agent}/extensions/pi-agent-messaging` for Pi's native
@@ -57,6 +54,15 @@ repository link exposed 38, including skills outside that published selection.
 The native installation keeps the `mattpocock-skills:` namespace and upstream
 invocation policies. The old Factory-managed Matt link is removed only after
 the native install succeeds, so it does not create duplicate skill entries.
+
+The Matt entry also sets `pi_skills: true`. For Pi, the installer fetches the same
+pinned source and exposes only the 27 directories declared in the upstream
+`.claude-plugin/plugin.json`, through a managed collection link under
+`${PI_CODING_AGENT_DIR:-~/.pi/agent}/skills/`. The generated link bundle lives in
+`${XDG_DATA_HOME:-~/.local/share}/factory/pi-skill-bundles/NAME/REVISION/`;
+upstream files and licenses remain unchanged in the source checkout. Pi uses
+ordinary skill names rather than Codex's plugin namespace. Keeping this link
+outside `~/.agents/skills/` avoids duplicating the native plugin in Codex.
 
 External entries without `kind: codex-plugin` remain ordinary skill sources.
 They are fetched at the manifest's exact commit, under
@@ -105,6 +111,9 @@ For an external skill or collection, add an entry to `skills.yaml` with:
 
 For a native plugin, also set `kind: codex-plugin`, `marketplace` and `plugin`,
 as in the Matt entry. Factory invokes Codex to manage that installation.
+Set `pi_skills: true` to also expose its published skill list to Pi; this expects
+an explicit `skills` array in `.claude-plugin/plugin.json` beside the configured
+skill-source directory.
 
 Pin updates by changing `revision`, running `install-skills --replace`, and
 testing the intended behavior before committing. A rollback uses the previous
@@ -116,23 +125,6 @@ links that still point at its recorded managed source. Retired native plugins
 are removed only when their marketplace source/ref still matches the managed
 record. Replacements and unrelated skills are preserved. Local records live in
 `~/.local/state/factory/skills.json` and `plugins.json`.
-
-## Side questions
-
-Invoke `$sidequestion` to open a temporary fork in another Herdr tab. It shares
-its parent's checkout and discussion context. The detour sends a summary back
-only when requested. Exiting the fork or closing its tab removes only that
-temporary transcript; the parent remains. Runtime metadata stays under
-`XDG_RUNTIME_DIR` (or the system temporary directory), using the existing
-`harness-sidequestions-UID` name for compatibility.
-
-```bash
-sidequestion open --parent "$CODEX_THREAD_ID" --cwd "$PWD" "Explain this trade-off"
-sidequestion handoff "The requested summary"
-```
-
-The helper requires a local Herdr session and the Codex CLI's fork/resume/queue
-commands. Installing it does not create a fork or start an agent.
 
 ## Full agents and editor integration
 
@@ -163,11 +155,16 @@ and permission policy. The skill also supports the former config
 as a fallback when used independently. Worker creation still requires an
 explicit user assignment and a local Herdr session.
 
-`herdr-nvim` supplies instructions and a native Neovim display helper. The
-optional `nvim-selection` MCP and selection/request-card plugin integration
-must be installed separately; installing the skill alone does not configure
-MCP or copy laptop sockets into an environment. Native file display uses a
-verified editor socket in the same environment.
+`herdr-nvim` uses native Neovim socket helpers for both Pi and Codex: identify
+an editor with `scripts/read_selection.py --server SOCKET --metadata`, read its
+selection without `--metadata`, or navigate with `scripts/show_file.py`. Resolve
+these helper paths from the skill directory and verify the editor belongs to
+the intended Herdr tab before reading. Selection reads include unsaved text and
+consume each capture once. They require the editor's `herdr-codex.context`
+module, not an MCP server. For direct sending, the editor's separate `<leader>a`
+request card lets the user choose Pi or Codex; `Enter` submits and `Ctrl+s` stages
+in the recipient's draft. Installing the skill does not install the editor
+module or copy laptop sockets into an environment.
 
 ## Checks
 
@@ -180,7 +177,6 @@ public network or live credentials. They exercise pinned fetches, revisions,
 backups, conflicts, retirement, modified sources and preference migration.
 When Codex is installed, native plugin tests use the same local Git fixture to
 verify migration, pinned updates and retirement without public network access.
-The sidequestion tests cover fork identity, explicit handoff and child cleanup.
 Run the model-free messaging suite separately:
 
 ```sh

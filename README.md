@@ -11,7 +11,7 @@ infra/incus/   Host configuration, image build and recovery instructions
 infra/netdata/ Optional host monitoring dashboard, separate from agent images
 setup-agent.sh Ubuntu tool installation and explicit user setup commands
 scripts/       agent-env, Codex defaults and their tests
-skills/        Own skills: full-agents, herdr-nvim and sidequestion
+skills/        Own skills: full-agents and herdr-nvim
 extensions/    Pi agent messaging, installed for native auto-discovery
 skills.yaml    Pinned third-party skill sources (initially Matt Pocock)
 config/        Environment system configuration (AppArmor)

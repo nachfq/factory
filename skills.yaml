@@ -3,6 +3,7 @@ version: 1
 external:
   - name: mattpocock-skills
     kind: codex-plugin
+    pi_skills: true
     marketplace: mattpocock
     plugin: mattpocock-skills
     repository: https://github.com/mattpocock/skills.git

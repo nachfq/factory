@@ -51,10 +51,10 @@ The tooling remains the same as before the repository split:
   prompts. `configure-codex` preserves other settings and hook trust, backs up
   changes under `~/.local/state/factory/backups`, and leaves auth files alone.
 - Herdr through its official installer, with its Codex integration.
-- The [shared skill bundle](skills.md): `full-agents` for Pi/Codex, editor and
-  sidequestion skills, and the pinned
-  native Matt Pocock plugin. Requires Python's PyYAML (`python3-yaml` on Ubuntu,
-  `python-yaml` on Arch), installed by the Ubuntu tool step.
+- The [shared skill bundle](skills.md): `full-agents` for Pi/Codex, the editor
+  skill, and the pinned Matt Pocock skills for Pi and Codex. Requires Python's
+  PyYAML (`python3-yaml` on Ubuntu, `python-yaml` on Arch), installed by the
+  Ubuntu tool step.
 
 The environment's AppArmor policy remains named `dotfiles-bwrap` for compatibility
 with previous images; its source is now `config/apparmor/dotfiles-bwrap` in Factory.

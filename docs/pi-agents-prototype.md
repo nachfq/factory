@@ -382,8 +382,8 @@ changes, session cleanup, or claiming mixed-harness support before implementatio
 ### Installed Pi live trial
 
 Started a normal interactive `pi --name installed-pi` in `w2:t7` / `w2:p9`, with
-no explicit skill or extension flags. Startup listed `full-agents`, `herdr-nvim`,
-and `sidequestion`, but not the retired skill, and discovered `extension.mjs`.
+no explicit skill or extension flags. Startup listed the then-current Factory
+skills, but not the retired skill, and discovered `extension.mjs`.
 `/agent-contact` worked. Actual coordinator session:
 `01a1c24b-486a-740d-a021-f2e29ef73e86`.
 
