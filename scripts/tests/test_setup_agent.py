@@ -84,6 +84,15 @@ touch "$HOME/unexpected-plugin-install"
         self.assertNotEqual(self.run_setup("install-client", "--replace").returncode, 0)
         self.assertEqual(client.read_text(), "user command\n")
 
+    def test_local_client_installs_the_direct_incus_entrypoint(self):
+        result = self.run_setup("install-client", "--local")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        client = self.home / ".local/bin/agent-env"
+        self.assertEqual(client.resolve(), ROOT / "scripts/agent-env-local.sh")
+        self.assertEqual(self.run_setup("install-client", "--local").returncode, 0)
+        self.assertNotEqual(self.run_setup("install-client").returncode, 0)
+        self.assertEqual(client.resolve(), ROOT / "scripts/agent-env-local.sh")
+
 
 if __name__ == "__main__":
     unittest.main()

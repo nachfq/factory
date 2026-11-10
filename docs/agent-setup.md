@@ -118,6 +118,42 @@ Local runtime connection state remains under `~/.local/state/agent-env/`, with S
 configuration in `~/.ssh/agent-env.conf` and pinned host keys in
 `~/.ssh/agent-env_known_hosts`. The user SSH private key is not copied to guests.
 
+## Use the Incus host from a phone or another SSH terminal
+
+Install Herdr on the host as the regular Incus operator. Clone Factory and your
+dotfiles there, then install the local client and link only the Herdr config:
+
+```bash
+curl -fsSL https://herdr.dev/install.sh | sh
+git clone https://github.com/nachfq/factory.git ~/factory
+git clone https://github.com/nachfq/dotfiles.git ~/dotfiles
+~/factory/setup-agent.sh install-client --local
+mkdir -p ~/.config/herdr
+ln -s ~/dotfiles/config/herdr/config.toml ~/.config/herdr/config.toml
+ln -s ~/dotfiles/config/herdr/helpers ~/.config/herdr/helpers
+```
+
+For an existing checkout or config, update or inspect it instead of overwriting it.
+Herdr's optional navigation helper uses `jq`. Ensure `~/.local/bin` is on the
+host's login-shell PATH and Bash completion is loaded for Tab completion.
+This does not apply the rest of the laptop dotfiles or install agents on the host.
+
+From Termux, SSH to the host, run `herdr`, and use its local shell:
+
+```bash
+agent-env list
+agent-env open project
+```
+
+Tab completes names here too. The local entrypoint sets `AGENT_ENV_HOST=local`:
+management commands call Incus directly, and guest SSH connections need no jump
+host. On first use, it creates `~/.ssh/agent-env_ed25519` and adds only that public
+key to opened guests, preserving other client keys. The private key stays on the
+host. Connections target each container's existing default Herdr session, so
+opening the same project from the laptop or phone shows the same running panes.
+`list` always queries Incus; `open` registers the selected connection in this
+client's Herdr. This does not automatically register projects in other clients.
+
 ## Checks
 
 ```bash

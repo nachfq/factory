@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Small laptop entrypoint for project environments on the Incus homelab."""
+"""Project environment client for a local or SSH-connected Incus host."""
 
 import argparse
 import json
@@ -20,6 +20,7 @@ SSH_DIR = HOME / ".ssh"
 SSH_CONFIG = SSH_DIR / "agent-env.conf"
 KNOWN_HOSTS = SSH_DIR / "agent-env_known_hosts"
 STATE = Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state")) / "agent-env"
+KEY_NAME = "agent-env_ed25519" if HOST == "local" else "id_ed25519"
 
 
 def run(args, *, text=None, capture=True):
@@ -30,6 +31,8 @@ def run(args, *, text=None, capture=True):
 
 
 def host(*args, text=None):
+    if HOST == "local":
+        return run(list(args), text=text)
     return run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", HOST,
                 shlex.join(list(args))], text=text)
 
@@ -79,6 +82,30 @@ def write_private(path, content):
     path.chmod(0o600)
 
 
+def public_key():
+    key = SSH_DIR / KEY_NAME
+    public = key.with_suffix(".pub")
+    if HOST == "local" and not key.exists() and not public.exists():
+        SSH_DIR.mkdir(mode=0o700, exist_ok=True)
+        run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key),
+             "-C", "agent-env Incus host"])
+    if not public.is_file():
+        raise RuntimeError(f"Missing client public key: {public}")
+    return public
+
+
+def authorize_local_access(instance):
+    # Add this client's public key without replacing laptop or other client keys.
+    incus("exec", instance, "--", "sh", "-ec",
+          'key=$(cat); test -n "$key"; '
+          'install -d -m 700 -o dev -g dev /home/dev/.ssh; '
+          'touch /home/dev/.ssh/authorized_keys; '
+          'grep -qxF -- "$key" /home/dev/.ssh/authorized_keys || '
+          'printf "\\n%s\\n" "$key" >> /home/dev/.ssh/authorized_keys; '
+          'chown dev:dev /home/dev/.ssh/authorized_keys; '
+          'chmod 600 /home/dev/.ssh/authorized_keys', text=public_key().read_text())
+
+
 def save_connection(name, address, public_host_key):
     SSH_DIR.mkdir(mode=0o700, exist_ok=True)
     config = SSH_DIR / "config"
@@ -93,7 +120,8 @@ def save_connection(name, address, public_host_key):
     state_file = STATE / f"{name}.json"
     previous = json.loads(state_file.read_text()) if state_file.exists() else {}
     state = {**previous, "target": target, "ip": address, "host_key": public_host_key,
-             "host": HOST, "label": "homelab / " + name}
+             "host": HOST, "identity_file": "~/.ssh/" + KEY_NAME,
+             "label": "homelab / " + name}
     STATE.mkdir(parents=True, exist_ok=True)
     write_private(STATE / f"{name}.json", json.dumps(state, indent=2) + "\n")
     rebuild_connections()
@@ -105,11 +133,12 @@ def rebuild_connections():
     for file in sorted(STATE.glob("*.json")):
         state = json.loads(file.read_text())
         alias = "agent-env-" + file.stem
+        proxy = f'    ProxyJump {state["host"]}\n' if state["host"] != "local" else ""
         blocks.append(f'Host {state["target"]}\n'
                       f'    HostName {state["ip"]}\n'
                       '    User dev\n'
-                      f'    ProxyJump {state["host"]}\n'
-                      '    IdentityFile ~/.ssh/id_ed25519\n'
+                      + proxy +
+                      f'    IdentityFile {state.get("identity_file", "~/.ssh/id_ed25519")}\n'
                       '    IdentitiesOnly yes\n'
                       f'    HostKeyAlias {alias}\n'
                       '    UserKnownHostsFile ~/.ssh/agent-env_known_hosts\n'
@@ -173,6 +202,8 @@ def connect(name):
     if item["status"] != "Running":
         incus("start", instance)
     address = wait_for_ip(name)
+    if HOST == "local":
+        authorize_local_access(instance)
     # The host key is obtained through the trusted host + Incus channel.
     host_key = incus("exec", instance, "--", "cat", "/etc/ssh/ssh_host_ed25519_key.pub")
     state = save_connection(name, address, host_key)
@@ -216,9 +247,7 @@ def create(name, repo):
         raise RuntimeError("Incus 6.0.1 or newer is required: 6.0.0 skips dev folders when unpacking images.")
     if any(item["name"] == instance for item in instances()):
         raise RuntimeError(f"{instance} already exists. Use open {name}.")
-    key = SSH_DIR / "id_ed25519.pub"
-    if not key.exists():
-        raise RuntimeError(f"Missing laptop public key: {key}")
+    key = public_key()
     if repo and not re.fullmatch(r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/?", repo):
         raise RuntimeError("Use a GitHub HTTPS repository URL without credentials.")
     cwd = "/home/dev/" + name
@@ -297,7 +326,7 @@ def main():
     deletion.add_argument("name")
     args = parser.parse_args()
     if args.command != "list" and os.environ.get("HERDR_ENV") != "1":
-        raise RuntimeError("Run this command inside your laptop's Herdr.")
+        raise RuntimeError("Run this command inside Herdr on this client.")
     if args.command == "new":
         create(args.name, args.repo)
     elif args.command == "open":

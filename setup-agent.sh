@@ -10,6 +10,7 @@ Usage: ./setup-agent.sh COMMAND [ARGUMENT]
   apply-dotfiles PATH  Apply a dotfiles checkout and restore its editor plugins.
   install-client  Link agent-env and its Bash completion; does not apply configs.
                   Use --replace to back up and replace an older command symlink.
+                  Use --local on the Incus host to avoid SSH to itself.
   install-tools  Install development tools and gh on Ubuntu Linux x86_64.
                  Requires root or sudo; does not apply user configuration.
   install-runtimes  Install mise, Node LTS/npm and uv as the regular user.
@@ -184,15 +185,24 @@ case "${1:-help}" in
   apply-dotfiles) apply_dotfiles "${2:?Pass a dotfiles checkout directory}" ;;
   install-client)
     if (( EUID == 0 )); then
-      printf 'Run install-client as your laptop user.\n' >&2
+      printf 'Run install-client as your regular client user.\n' >&2
       exit 1
     fi
     mkdir -p "$HOME/.local/bin"
+    client_source="$repo_dir/scripts/agent-env.py"
+    replace_client=false
+    for option in "${@:2}"; do
+      case "$option" in
+        --local) client_source="$repo_dir/scripts/agent-env-local.sh" ;;
+        --replace) replace_client=true ;;
+        *) printf 'Unknown install-client option: %s\n' "$option" >&2; exit 2 ;;
+      esac
+    done
     client="$HOME/.local/bin/agent-env"
     if [[ -e "$client" || -L "$client" ]]; then
-      if [[ -L "$client" && $(readlink "$client") == "$repo_dir/scripts/agent-env.py" ]]; then
+      if [[ -L "$client" && $(readlink "$client") == "$client_source" ]]; then
         :
-      elif [[ -L "$client" && ${2:-} == --replace ]]; then
+      elif [[ -L "$client" && "$replace_client" == true ]]; then
         backup_dir="${XDG_STATE_HOME:-$HOME/.local/state}/factory/backups/client-$(date +%Y%m%d-%H%M%S)-$$"
         mkdir -p "$backup_dir"
         mv "$client" "$backup_dir/agent-env"
@@ -203,7 +213,7 @@ case "${1:-help}" in
       fi
     fi
     if [[ ! -e "$client" && ! -L "$client" ]]; then
-      ln -s "$repo_dir/scripts/agent-env.py" "$client"
+      ln -s "$client_source" "$client"
     fi
     completion_dir="${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions"
     completion="$completion_dir/agent-env"
