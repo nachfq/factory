@@ -225,9 +225,14 @@ def create(name, repo):
     incus("launch", IMAGE, instance, "-p", "agent-pilot", "-c", "user.agent-env=true",
           "-c", "user.agent-env.name=" + name, "-c", "user.agent-env.cwd=" + cwd)
     print(f"Created {instance}. Preparing SSH...")
-    # First boot can exhaust SSH's restart limit before this keyless image is
-    # provisioned. Stop both units first to avoid racing its automatic retries.
+    # Wait for systemd's control socket before provisioning. First boot can also
+    # exhaust SSH's restart limit while the image still has no host keys.
+    # Stop both SSH units to avoid racing their automatic retries.
     incus("exec", instance, "--", "sh", "-ec",
+          'attempt=0; until systemctl show-environment >/dev/null 2>&1; do '
+          'attempt=$((attempt + 1)); '
+          '[ "$attempt" -lt 60 ] || { echo "systemd is not ready" >&2; exit 1; }; '
+          'sleep 0.5; done; '
           'systemctl stop ssh.socket ssh.service; '
           'ssh-keygen -A; install -d -m 700 -o dev -g dev /home/dev/.ssh; '
           'cat > /home/dev/.ssh/authorized_keys; '
