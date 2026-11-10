@@ -16,6 +16,7 @@ Usage: ./setup-agent.sh COMMAND [ARGUMENT]
   grant-sudo     Allow dev to install packages without a password inside Incus.
                  Run as root inside the disposable environment only.
   install-codex  Install/update Codex using the official installer as this user.
+  install-pi     Install/update Pi using the official installer as this user.
   configure-codex  Default Codex to GPT-6.1 Sol / high with full access (YOLO).
                    Run only inside the disposable agent environment.
   install-herdr  Install/update Herdr and its Codex status integration as this user.
@@ -142,6 +143,14 @@ install_codex() {
   curl -fsSL https://chatgpt.com/codex/install.sh | sh
 }
 
+install_pi() {
+  if (( EUID == 0 )); then
+    printf 'Run install-pi as the user who will use Pi, not root.\n' >&2
+    exit 1
+  fi
+  curl -fsSL https://pi.dev/install.sh | sh
+}
+
 install_herdr() {
   if (( EUID == 0 )); then
     printf 'Run install-herdr as the user who will use Herdr, not root.\n' >&2
@@ -199,6 +208,7 @@ case "${1:-help}" in
   install-runtimes) install_runtimes ;;
   grant-sudo) grant_sudo ;;
   install-codex) install_codex ;;
+  install-pi) install_pi ;;
   configure-codex)
     if (( EUID == 0 )); then
       printf 'Run configure-codex as the user who will use Codex, not root.\n' >&2

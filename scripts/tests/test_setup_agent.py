@@ -24,6 +24,21 @@ class SetupAgentTest(unittest.TestCase):
         return subprocess.run([str(ROOT / "setup-agent.sh"), *args], env=self.env,
                               capture_output=True, text=True, timeout=10)
 
+    def test_install_pi_uses_the_official_installer(self):
+        binary = self.home / 'bin'
+        binary.mkdir()
+        curl = binary / 'curl'
+        curl.write_text('''#!/bin/sh
+printf '%s\\n' "$*" > "$HOME/curl-args"
+printf '%s\\n' 'printf installed > "$HOME/pi-installed"'
+''')
+        curl.chmod(0o755)
+        self.env['PATH'] = str(binary) + os.pathsep + os.environ['PATH']
+        result = self.run_setup('install-pi')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.home / 'curl-args').read_text(), '-fsSL https://pi.dev/install.sh\n')
+        self.assertEqual((self.home / 'pi-installed').read_text(), 'installed')
+
     def test_config_is_applied_by_the_selected_checkout_including_old_revisions(self):
         for name in ("apply.sh", "setup-agent.sh"):
             checkout = self.home / name.replace(".sh", " checkout")

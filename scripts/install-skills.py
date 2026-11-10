@@ -49,6 +49,8 @@ def read_manifest(path):
                 value = entry.get(field, '')
                 if not isinstance(value, str) or not re.fullmatch(r'[a-z0-9][a-z0-9-]*', value):
                     raise ValueError(f'{name}: invalid {field}')
+        if 'pi_skills' in entry and (kind != 'codex-plugin' or not isinstance(entry['pi_skills'], bool)):
+            raise ValueError(f'{name}: pi_skills must be a boolean on a codex-plugin entry')
         repository = entry.get('repository', '')
         if not isinstance(repository, str) or not re.fullmatch(
                 r'https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\.git', repository):
@@ -93,6 +95,42 @@ def checkout_source(entry, sources):
     if not source.is_relative_to(target.resolve()) or not source.is_dir() or not list(source.rglob('SKILL.md')):
         raise ValueError(f'No skills at {entry["name"]}:{entry["path"]}')
     return source
+
+
+def pi_skill_bundle(entry, source, target):
+    """Expose only upstream's published skills, without copying or rewriting them."""
+    manifest = source.parent / '.claude-plugin/plugin.json'
+    published = json.loads(manifest.read_text()).get('skills')
+    if not isinstance(published, list) or not published:
+        raise ValueError(f'{entry["name"]}: expected an upstream published skills list')
+    selected = {}
+    for raw in published:
+        path = PurePosixPath(raw) if isinstance(raw, str) else PurePosixPath('/')
+        if path.is_absolute() or '..' in path.parts:
+            raise ValueError(f'{entry["name"]}: invalid published skill path')
+        skill = (source.parent / path).resolve()
+        if not skill.is_relative_to(source) or not (skill / 'SKILL.md').is_file():
+            raise ValueError(f'{entry["name"]}: published skill must stay inside its skill source')
+        if skill.name in selected:
+            raise ValueError(f'{entry["name"]}: duplicate published skill directory')
+        selected[skill.name] = skill
+    if target.exists() or target.is_symlink():
+        if target.is_symlink() or not target.is_dir() or set(p.name for p in target.iterdir()) != set(selected):
+            raise ValueError(f'Pi skill bundle was edited: {target}')
+        for name, skill in selected.items():
+            link = target / name
+            if not link.is_symlink() or link.readlink() != skill:
+                raise ValueError(f'Pi skill bundle was edited: {target}')
+        return
+    target.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix='.bundle-', dir=target.parent))
+    try:
+        for name, skill in selected.items():
+            (staging / name).symlink_to(skill, target_is_directory=True)
+        staging.rename(target)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
 
 
 def check_parents(target):
@@ -192,18 +230,21 @@ def install(args):
     skills = args.skills_dir.expanduser().absolute()
     commands = args.bin_dir.expanduser().absolute()
     codex_home = directory('CODEX_HOME', Path.home() / '.codex')
+    pi_agent = directory('PI_CODING_AGENT_DIR', Path.home() / '.pi/agent')
+    pi_extensions = pi_agent / 'extensions'
+    pi_skills = pi_agent / 'skills'
     sources = data / 'factory/skill-sources'
     links = {skills / p.name: p.resolve() for p in sorted((ROOT / 'skills').iterdir())
              if (p / 'SKILL.md').is_file()}
-    sidequestion = ROOT / 'skills/sidequestion/scripts/sidequestion.py'
-    if sidequestion.is_file():
-        links[commands / 'sidequestion'] = sidequestion
+    links[pi_extensions / 'pi-agent-messaging'] = ROOT / 'extensions/pi-agent-messaging'
     plugins = [entry for entry in entries if entry.get('kind') == 'codex-plugin']
     for entry in entries:
         target = skills / entry['name']
         if target in links:
             raise ValueError(f'External name conflicts with an own skill: {target.name}')
         if entry.get('kind') == 'codex-plugin':
+            if entry.get('pi_skills'):
+                links[pi_skills / entry['name']] = data / 'factory/pi-skill-bundles' / entry['name'] / entry['revision']
             continue
         source = sources / entry['name'] / entry['revision'] / entry['path']
         links[target] = source
@@ -220,6 +261,9 @@ def install(args):
     for entry in entries:
         if entry.get('kind') != 'codex-plugin':
             links[skills / entry['name']] = checkout_source(entry, sources)
+        elif entry.get('pi_skills'):
+            source = checkout_source(entry, sources)
+            pi_skill_bundle(entry, source, links[pi_skills / entry['name']])
     preflight(links, args.replace)
     ledger = state / 'skills.json'
     previous = json.loads(ledger.read_text()) if ledger.exists() else {}
@@ -248,14 +292,16 @@ def install(args):
         print(f'Linked {target} -> {source}')
     for target_name, source_name in previous.items():
         target = Path(target_name)
-        if target.parent in [skills, commands] and target not in links and target.is_symlink() and target.readlink() == Path(source_name):
+        if (target.parent in [skills, commands, pi_extensions, pi_skills] and target not in links
+                and target.is_symlink() and target.readlink() == Path(source_name)):
             target.unlink()
             print(f'Removed retired managed link: {target}')
     prepare_workers(config, data)
     state.mkdir(parents=True, exist_ok=True)
     ledger.write_text(json.dumps({str(k): str(v) for k, v in links.items()}, indent=2) + '\n')
     plugin_record.write_text(json.dumps(desired_plugins, indent=2) + '\n')
-    print('Installed skill bundle. Skills are available on your next Codex turn.')
+    print('Installed full-agents skill and Pi messaging extension. '
+          'Use /reload in Pi; Codex sees skills on its next turn.')
 
 
 def main():

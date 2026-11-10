@@ -148,6 +148,11 @@ removes credentials/instance identity, stops it and publishes private aliases:
 - `agent-base`, the latest successful build;
 - `agent-base-DATE-DOTFILES_SHA-FACTORY_SHA`, an immutable build name.
 
+To test a candidate before replacing `agent-base`, set `AGENT_IMAGE_PROMOTE=0`
+on the host command (`ssh user@newserver "AGENT_IMAGE_PROMOTE=0 bash -s -- ..."`).
+The script publishes only the immutable alias. After testing a container launched
+from that alias, promote its fingerprint with `incus image alias update agent-base FINGERPRINT`.
+
 The image records both complete source revisions in its properties. A failed
 builder remains for diagnosis; a successful builder is deleted. Existing working
 containers are never used as image builders.

@@ -4,6 +4,8 @@ set -euo pipefail
 revision=${1:?Pass the dotfiles Git commit to build}
 factory_revision=${2:?Pass the Factory Git commit containing this recipe}
 dotfiles_repo=${3:-https://github.com/nachfq/dotfiles.git}
+promote=${AGENT_IMAGE_PROMOTE:-1}
+[[ "$promote" == 0 || "$promote" == 1 ]] || { printf 'AGENT_IMAGE_PROMOTE must be 0 or 1.\n' >&2; exit 1; }
 [[ "$revision" =~ ^[0-9a-f]{40}$ ]] || { printf 'Expected a full Git commit.\n' >&2; exit 1; }
 [[ "$factory_revision" =~ ^[0-9a-f]{40}$ ]] || { printf 'Expected a full Factory Git commit.\n' >&2; exit 1; }
 [[ "$dotfiles_repo" =~ ^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/?$ ]] || {
@@ -42,12 +44,14 @@ set -euo pipefail
 cd /home/dev/factory
 ./setup-agent.sh install-runtimes
 ./setup-agent.sh install-codex
+./setup-agent.sh install-pi
 ./setup-agent.sh configure-codex
 ./setup-agent.sh install-herdr
 ./setup-agent.sh apply-dotfiles /home/dev/dotfiles
 ./setup-agent.sh install-skills
 sudo -n true
-for tool in git gh codex herdr nvim node npm mise uv fzf bat zoxide btop dua rsync pkg-config; do
+export PATH="$HOME/.pi/agent/bin:$PATH"
+for tool in git gh codex pi herdr nvim node npm mise uv fzf bat zoxide btop dua rsync pkg-config; do
   command -v "$tool"
 done
 ! command -v rustc
@@ -71,10 +75,12 @@ incus publish "$builder" --alias "$alias_name" --compression gzip \
   "user.dotfiles.revision=$revision" "user.dotfiles.repository=$dotfiles_repo" \
   "user.factory.revision=$factory_revision"
 fingerprint=$(incus image info "$alias_name" | sed -n 's/^Fingerprint: //p')
-if incus image alias list --format csv | cut -d, -f1 | grep -qx agent-base; then
-  incus image alias delete agent-base
+if [[ "$promote" == 1 ]]; then
+  if incus image alias list --format csv | cut -d, -f1 | grep -qx agent-base; then
+    incus image alias delete agent-base
+  fi
+  incus image alias create agent-base "$fingerprint"
 fi
-incus image alias create agent-base "$fingerprint"
 incus delete "$builder"
 trap - ERR
-printf 'Ready: agent-base (%s), immutable alias %s\n' "$fingerprint" "$alias_name"
+printf 'Ready: %s (%s), promoted to agent-base: %s\n' "$alias_name" "$fingerprint" "$promote"

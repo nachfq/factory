@@ -11,7 +11,8 @@ infra/incus/   Host configuration, image build and recovery instructions
 infra/netdata/ Optional host monitoring dashboard, separate from agent images
 setup-agent.sh Ubuntu tool installation and explicit user setup commands
 scripts/       agent-env, Codex defaults and their tests
-skills/        Own skills: codex-full-agents, herdr-nvim and sidequestion
+skills/        Own skills: full-agents and herdr-nvim
+extensions/    Pi agent messaging, installed for native auto-discovery
 skills.yaml    Pinned third-party skill sources (initially Matt Pocock)
 config/        Environment system configuration (AppArmor)
 legacy/        Previous Factory development workflows and their installer/tests
@@ -27,3 +28,7 @@ See [agent setup](docs/agent-setup.md) for Ubuntu installation, dotfiles integra
 and the laptop command, or [the Incus recipe](infra/incus/README.md) for a clean host
 and image build. [The skill bundle](docs/skills.md) is installed with
 `./setup-agent.sh install-skills` on both the laptop and agent environments.
+Use `full-agents` for interactive delegation in Pi or Codex. Installation supplies
+the Pi messaging extension through native auto-discovery, without a wrapper or
+settings rewrite, and retires `codex-full-agents`. Mixed-harness messaging is not
+implemented; see [the full-agent guide](docs/full-agents.md).
