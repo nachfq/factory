@@ -148,7 +148,7 @@ def preflight(links, replace):
             raise ValueError(f'Existing skill: {target}; --replace backs up symlinks only')
 
 
-def prepare_workers(config, data):
+def prepare_workers(config):
     target = config / 'factory/config.json'
     if target.exists():
         return
@@ -158,7 +158,7 @@ def prepare_workers(config, data):
     else:
         workers = None
     if not isinstance(workers, dict):
-        worktrees = data / 'factory/worktrees'
+        worktrees = Path.home() / 'worktrees'
         worktrees.mkdir(parents=True, exist_ok=True)
         workers = {
             'worktrees_root': str(worktrees),
@@ -296,7 +296,7 @@ def install(args):
                 and target.is_symlink() and target.readlink() == Path(source_name)):
             target.unlink()
             print(f'Removed retired managed link: {target}')
-    prepare_workers(config, data)
+    prepare_workers(config)
     state.mkdir(parents=True, exist_ok=True)
     ledger.write_text(json.dumps({str(k): str(v) for k, v in links.items()}, indent=2) + '\n')
     plugin_record.write_text(json.dumps(desired_plugins, indent=2) + '\n')

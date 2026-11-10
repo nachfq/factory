@@ -44,7 +44,7 @@ required.
    under `workers`; if absent, read `harness-fq/config.json` in that config root.
    Explicit task choices win. Defaults: role `implementer`, model `gpt-6.1-sol`,
    reasoning `high`, `yolo: false`, layout `agent`, storage
-   `${XDG_DATA_HOME:-$HOME/.local/share}/factory/worktrees`.
+   `$HOME/worktrees`.
    Read model and `reasoning_effort` from `workers.types.<role>`, storage from
    `workers.worktrees_root`, and layout from `workers.herdr.layout`.
    Validate settings; never silently replace an unavailable model. The adapter

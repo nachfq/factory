@@ -94,6 +94,7 @@ class InstallSkillsTest(unittest.TestCase):
                          ROOT / 'extensions/pi-agent-messaging')
         self.assertFalse((self.home / '.pi/agent/settings.json').exists())
         workers = json.loads((self.home / 'config/factory/config.json').read_text())['workers']
+        self.assertEqual(Path(workers['worktrees_root']), self.home / 'worktrees')
         self.assertTrue(Path(workers['worktrees_root']).is_dir())
         self.assertTrue(workers['yolo'])
         self.install()
