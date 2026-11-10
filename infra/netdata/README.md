@@ -71,6 +71,32 @@ The HTML/CSS/JS are served by the existing Netdata web server. No framework,
 external assets, new daemon or agent image change is required. Historical data
 comes from Netdata and current disk/list data from the atomic JSON snapshot.
 
+### Short private URL
+
+With MagicDNS enabled, Tailscale Serve can expose the dashboard as
+`http://HOSTNAME` without a port or path. On the server, first inspect
+`tailscale serve status` and check that port 80 is not already assigned. Run as
+the configured Tailscale operator (or with sudo):
+
+```bash
+tailscale serve --bg --http=80 http://127.0.0.1:19999/factory/
+tailscale serve --bg --http=80 --set-path=/api http://127.0.0.1:19999/api/
+tailscale serve status
+```
+
+The root route serves the dashboard and its relative assets/snapshot; the `/api`
+route keeps its absolute Netdata data queries working. Both backend target paths
+are intentional. Serve runs inside the existing Tailscale daemon and `--bg`
+persists the configuration. Access remains within the tailnet, using its existing
+access policy; Funnel/public sharing is not enabled. This HTTP URL travels over
+Tailscale's encrypted network. The original `:19999/factory/` URL still works.
+
+To remove this optional shortcut (when these are the only routes on port 80):
+
+```bash
+tailscale serve --http=80 off
+```
+
 ## Optional native Netdata resource view
 
 Disk samples are published by the same host collector to Netdata's built-in
