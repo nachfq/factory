@@ -189,10 +189,21 @@ async function json(url) {
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.json();
 }
+let apiPrefixPromise;
+function apiPrefix() {
+  if (!apiPrefixPromise) {
+    apiPrefixPromise = (async () => {
+      try {await json('api/v1/info'); return 'api/v1';}
+      catch {await json('/api/v1/info'); return '/api/v1';}
+    })().catch(error => {apiPrefixPromise = undefined; throw error;});
+  }
+  return apiPrefixPromise;
+}
 async function history(id, kind, before) {
   try {
     const query = new URLSearchParams({chart:id, after:before-HOUR, before, points:180, options:'jsonwrap'});
-    return metric(await json(`/api/v1/data?${query}`), kind);
+    const prefix = await apiPrefix();
+    return metric(await json(`${prefix}/data?${query}`), kind);
   } catch {return null;}
 }
 async function readRow(item, cores, before) {

@@ -74,27 +74,32 @@ comes from Netdata and current disk/list data from the atomic JSON snapshot.
 ### Short private URL
 
 With MagicDNS enabled, Tailscale Serve can expose the dashboard as
-`http://HOSTNAME` without a port or path. On the server, first inspect
+`http://HOSTNAME/factory/` without a port, leaving the root for other services.
+On the server, first inspect
 `tailscale serve status` and check that port 80 is not already assigned. Run as
 the configured Tailscale operator (or with sudo):
 
 ```bash
-tailscale serve --bg --http=80 http://127.0.0.1:19999/factory/
-tailscale serve --bg --http=80 --set-path=/api http://127.0.0.1:19999/api/
+tailscale serve --bg --http=80 --set-path=/factory http://127.0.0.1:19999/factory/
+tailscale serve --bg --http=80 --set-path=/factory/api http://127.0.0.1:19999/api/
 tailscale serve status
 ```
 
-The root route serves the dashboard and its relative assets/snapshot; the `/api`
-route keeps its absolute Netdata data queries working. Both backend target paths
-are intentional. Serve runs inside the existing Tailscale daemon and `--bg`
+The `/factory` route serves the dashboard and its relative assets/snapshot;
+`/factory/api` forwards its data queries. The HTML base path keeps assets working
+with or without a trailing slash. The frontend discovers the scoped API once,
+falling back to native Netdata's `/api` when used on its original port. No global
+root or `/api` route is assigned. Both backend target paths are intentional.
+Serve runs inside the existing Tailscale daemon and `--bg`
 persists the configuration. Access remains within the tailnet, using its existing
 access policy; Funnel/public sharing is not enabled. This HTTP URL travels over
 Tailscale's encrypted network. The original `:19999/factory/` URL still works.
 
-To remove this optional shortcut (when these are the only routes on port 80):
+To remove only this dashboard shortcut, preserving other services on port 80:
 
 ```bash
-tailscale serve --http=80 off
+tailscale serve --http=80 --set-path=/factory/api off
+tailscale serve --http=80 --set-path=/factory off
 ```
 
 ## Optional native Netdata resource view

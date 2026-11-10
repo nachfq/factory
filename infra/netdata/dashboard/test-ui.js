@@ -18,7 +18,7 @@ const item = (name,size) => ({name,status:'Running',memory_limit:'2GiB',used_byt
 let snapshot = {hostname:'test-host',cpu_cores:4,updated_at:now,interval_seconds:600,
   filesystems:[{path:'/',used_bytes:100*GiB,available_bytes:400*GiB}],
   instances:[item('dev-small',2),item('dev-large',5)]};
-let offline = false, noAvailable = false;
+let offline = false, noAvailable = false, nativeAPI = false;
 const elements = Object.fromEntries(['host','instances','status','count','hostname','disk-updated'].map(id=>[id,new Element('div')]));
 elements.host.setAttribute('aria-busy','true');
 const document = {hidden:false,getElementById:id=>elements[id],
@@ -26,6 +26,9 @@ const document = {hidden:false,getElementById:id=>elements[id],
 const context = vm.createContext({console,URLSearchParams,AbortSignal,fetch:async url=>{
   if (offline) throw new Error('offline');
   if (url === 'incus-storage.json') return {ok:true,json:async()=>structuredClone(snapshot)};
+  if (url === 'api/v1/info') return {ok:!nativeAPI,status:404,json:async()=>({})};
+  if (url === '/api/v1/info') return {ok:true,json:async()=>({})};
+  assert.equal(url.startsWith('/'),nativeAPI); // Scoped Serve API, or native Netdata fallback.
   const params = new URL(url,'http://test').searchParams, id=params.get('chart');
   assert.equal(Number(params.get('before'))-Number(params.get('after')),3600);
   if (id.includes('dev-new')) return {ok:false,status:404};
@@ -66,6 +69,10 @@ context.document=document;
   assert(text(elements.host).includes('Available: —'));
   assert(text(elements.host).includes('No data'));
   noAvailable=false;
+  nativeAPI=true;
+  vm.runInContext('apiPrefixPromise = undefined;',context);
+  await context.runRefresh();
+  assert(text(elements.host).includes('4 GiB available'));
   offline=true;
   await context.runRefresh();
   assert.equal(elements.status.textContent,'Offline');
