@@ -8,7 +8,7 @@ usage() {
 Usage: ./setup-agent.sh COMMAND [ARGUMENT]
 
   apply-dotfiles PATH  Apply a dotfiles checkout and restore its editor plugins.
-  install-client  Link the laptop's agent-env command; does not apply configs.
+  install-client  Link agent-env and its Bash completion; does not apply configs.
                   Use --replace to back up and replace an older command symlink.
   install-tools  Install development tools and gh on Ubuntu Linux x86_64.
                  Requires root or sudo; does not apply user configuration.
@@ -191,7 +191,7 @@ case "${1:-help}" in
     client="$HOME/.local/bin/agent-env"
     if [[ -e "$client" || -L "$client" ]]; then
       if [[ -L "$client" && $(readlink "$client") == "$repo_dir/scripts/agent-env.py" ]]; then
-        exit 0
+        :
       elif [[ -L "$client" && ${2:-} == --replace ]]; then
         backup_dir="${XDG_STATE_HOME:-$HOME/.local/state}/factory/backups/client-$(date +%Y%m%d-%H%M%S)-$$"
         mkdir -p "$backup_dir"
@@ -202,7 +202,20 @@ case "${1:-help}" in
         exit 1
       fi
     fi
-    ln -s "$repo_dir/scripts/agent-env.py" "$client"
+    if [[ ! -e "$client" && ! -L "$client" ]]; then
+      ln -s "$repo_dir/scripts/agent-env.py" "$client"
+    fi
+    completion_dir="${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions"
+    completion="$completion_dir/agent-env"
+    if [[ -e "$completion" || -L "$completion" ]]; then
+      if [[ ! -L "$completion" || $(readlink "$completion") != "$repo_dir/completions/agent-env.bash" ]]; then
+        printf 'Existing Bash completion at %s; move it aside before installing.\n' "$completion" >&2
+        exit 1
+      fi
+    else
+      mkdir -p "$completion_dir"
+      ln -s "$repo_dir/completions/agent-env.bash" "$completion"
+    fi
     ;;
   install-tools) install_tools ;;
   install-runtimes) install_runtimes ;;

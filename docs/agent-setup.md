@@ -76,7 +76,12 @@ From the Factory checkout on the laptop:
 ./setup-agent.sh install-client
 ```
 
-This installs only `~/.local/bin/agent-env`. It does not install Ubuntu tools or
+This links `~/.local/bin/agent-env` and its Bash completion in the user's
+`bash-completion/completions` data directory. In a new shell, use
+`agent-env open <Tab>` to complete names from Incus, including stopped environments.
+Completion also supports `remove` and command names. Queries time out after three
+seconds and fail silently if the host is unavailable.
+It does not install Ubuntu tools or
 apply dotfiles to the laptop. To migrate the old dotfiles-owned command symlink,
 use `install-client --replace`; it backs up that symlink first. Real files are
 never replaced by this command.

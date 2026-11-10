@@ -291,7 +291,8 @@ def main():
     new.add_argument("repo", nargs="?")
     opening = commands.add_parser("open", help="Start if stopped and make available in Herdr")
     opening.add_argument("name")
-    commands.add_parser("list", help="List environments managed by this command")
+    listing = commands.add_parser("list", help="List environments managed by this command")
+    listing.add_argument("--names", action="store_true", help="Print only environment names")
     deletion = commands.add_parser("remove", help="Permanently delete an environment and its files")
     deletion.add_argument("name")
     args = parser.parse_args()
@@ -304,10 +305,15 @@ def main():
     elif args.command == "remove":
         remove(args.name)
     else:
-        print(f'{"NAME":<24} {"STATUS":<12} IP')
+        if not args.names:
+            print(f'{"NAME":<24} {"STATUS":<12} IP')
         for item in instances():
             if item.get("config", {}).get("user.agent-env") == "true":
-                print(f'{item["config"]["user.agent-env.name"]:<24} {item["status"]:<12} {ip_address(item) or "-"}')
+                name = item["config"]["user.agent-env.name"]
+                if args.names:
+                    print(name)
+                else:
+                    print(f'{name:<24} {item["status"]:<12} {ip_address(item) or "-"}')
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ class SetupAgentTest(unittest.TestCase):
         self.home = Path(self.temp.name)
         self.env = os.environ | {"HOME": str(self.home),
                                  "XDG_STATE_HOME": str(self.home / "state"),
+                                 "XDG_DATA_HOME": str(self.home / "data"),
                                  "XDG_CONFIG_HOME": str(self.home / "config")}
 
     def run_setup(self, *args):
@@ -68,6 +69,8 @@ touch "$HOME/unexpected-plugin-install"
         result = self.run_setup("install-client", "--replace")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(client.resolve(), ROOT / "scripts/agent-env.py")
+        self.assertEqual((self.home / "data/bash-completion/completions/agent-env").resolve(),
+                         ROOT / "completions/agent-env.bash")
         backups = list((self.home / "state/factory/backups").glob("*/agent-env"))
         self.assertEqual(len(backups), 1)
         self.assertEqual(backups[0].readlink(), original)
