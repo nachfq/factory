@@ -23,6 +23,7 @@ services:
       - config:/etc/netdata
       - ./netdata.conf:/etc/netdata/netdata.conf:ro
       - ./statsd.d/factory.conf:/etc/netdata/statsd.d/factory.conf:ro
+      - ./factory-memory.plugin:/usr/libexec/netdata/plugins.d/factory-memory.plugin:ro
       - ./dashboard:/usr/share/netdata/web/factory:ro
       - data:/var/lib/netdata
       - cache:/var/cache/netdata

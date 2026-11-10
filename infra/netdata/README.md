@@ -53,9 +53,11 @@ available-memory sample from the current host total (appropriate for this host's
 fixed physical memory). Missing available-memory samples remain missing, with no
 fallback to the previous incompatible "used" definition.
 
-Container RAM remains Netdata's **working set**: cgroup memory usage minus
-inactive file cache, excluding swap. It can include active file cache and is not
-directly additive with the host estimate. Each container shows its configured
+Container RAM is cgroup memory usage minus **inactive file cache and reclaimable
+kernel slab**, excluding swap. This removes filesystem metadata cache that can
+otherwise look like application RAM after builds or repository scans. It remains
+an estimate: active file cache can still be included, and it is not directly
+additive with the host estimate. Each container shows its configured
 Incus memory limit below the current value, e.g. `1.7 GiB` / `of 2 GiB`. Limits
 come from the same ten-minute instance snapshot; percentage limits are identified
 as a share of host memory and absent limits are explicit. Storage uses GiB.
@@ -68,8 +70,38 @@ and their timestamped last known disk measurement. No import or layout editing
 is needed when environments change.
 
 The HTML/CSS/JS are served by the existing Netdata web server. No framework,
-external assets, new daemon or agent image change is required. Historical data
+external assets, separate service or agent image change is required. Historical data
 comes from Netdata and current disk/list data from the atomic JSON snapshot.
+
+### Container RAM collection
+
+`factory-memory.plugin` is a small Python collector supervised by Netdata itself.
+Every ten seconds it reads `memory.current`, `inactive_file` and
+`slab_reclaimable` from the host's top-level Incus payload cgroups. It uses the
+existing read-only `/host/sys` mount and the Factory instance snapshot to select
+guests. It does not run Incus commands, launch guest processes or change cgroup
+limits. Python 3 is already present in the pinned Netdata image.
+
+The plugin is mounted read-only into Netdata's `plugins.d` directory and enabled
+by `netdata.conf`. Its `factory_memory.INSTANCE` charts store corrected MiB in
+Netdata's existing database, under context `factory.container_memory`. The custom
+dashboard uses these charts directly. History begins when this collector is
+enabled; it never mixes older working-set values into the new series. Missing or
+inconsistent counters produce missing data rather than fabricated zeroes. Stopped
+and deleted guests stop publishing; the instance list still updates on its usual
+ten-minute snapshot cadence. Host RAM and CPU collection are unchanged.
+
+Measure the collector's incremental read/parse cost without publishing anything:
+
+```bash
+docker exec -u netdata netdata /usr/libexec/netdata/plugins.d/factory-memory.plugin 10 --benchmark 1000
+```
+
+On homelab with four running containers, 1,000 passes measured **0.67 ms CPU per
+pass**, equivalent to **0.0067% of one CPU** at the ten-second interval. Peak
+Python RSS was **12.5 MiB**; physical reads totalled **252 KiB** across the full
+benchmark. This measures the reader, excluding Netdata's own chart/database work.
+The benchmark also reports wall time, errors and the number of measured guests.
 
 ### Short private URL
 
@@ -106,7 +138,8 @@ tailscale serve --http=80 --set-path=/factory off
 
 Disk samples are published by the same host collector to Netdata's built-in
 StatsD listener, bound only to `127.0.0.1:8125/UDP`. No additional service or
-container agent is needed. CPU/RAM continue using the existing collectors.
+container agent is needed. Standard CPU/RAM charts retain their existing
+definitions; the corrected RAM series is available as `factory.container_memory`.
 
 Open the main Netdata page, then the **Metrics**/node charts and **StatsD**:
 

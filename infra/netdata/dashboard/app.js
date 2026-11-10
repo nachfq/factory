@@ -179,7 +179,7 @@ function resourceRow(record, snapshot, scales) {
   row.append(heading);
   const metrics = element('div', 'metrics');
   const ramDetail = host ? fresh => fresh && valid(record.ram?.available) ? `${memory(record.ram.available).join(' ')} available` : 'Available: —' : limitCaption(record.item.memory_limit);
-  const ramDescription = host ? 'Estimated used memory: total minus available' : 'Working set: usage minus inactive file cache';
+  const ramDescription = host ? 'Estimated used memory: total minus available' : 'Usage minus inactive file and reclaimable kernel cache';
   metrics.append(historyBlock('CPU', record.cpu, 'cpu', scales.cpu, running, '', 'Percent of total host CPU'),
     historyBlock('RAM', record.ram, 'ram', scales.ram, running, ramDetail, ramDescription), diskBlock(record.item, snapshot));
   row.append(metrics); return row;
@@ -210,7 +210,7 @@ async function readRow(item, cores, before) {
   const prefix = item ? `cgroup_${item.name}` : 'system';
   const [cpu,ram,available] = await Promise.all([
     history(`${prefix}.cpu`, 'cpu', before),
-    history(item ? `${prefix}.mem_usage` : 'system.ram', item ? 'ram' : 'host-ram', before),
+    history(item ? `factory_memory.${item.name}` : 'system.ram', item ? 'ram' : 'host-ram', before),
     item ? Promise.resolve(null) : history('mem.available', 'available', before)
   ]);
   return {item, cpu:item ? cpuShare(cpu, cores) : cpu, ram:item ? ram : hostMemory(ram, available)};

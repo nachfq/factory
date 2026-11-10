@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""Netdata collector: Incus working-set RAM minus reclaimable kernel slab."""
+import argparse
+import json
+from pathlib import Path
+import re
+import resource
+import sys
+import time
+
+
+def collect(snapshot, root):
+    samples, errors = {}, []
+    for item in json.loads(snapshot.read_text())["instances"]:
+        if item["status"] != "Running":
+            continue
+        name = item["name"]
+        if not re.fullmatch(r"dev-[a-z0-9-]+", name):
+            raise ValueError("Unexpected Factory instance name")
+        cgroup = root / ("lxc.payload." + name)
+        try:
+            stats = dict(line.split() for line in (cgroup / "memory.stat").read_text().splitlines())
+            current = int((cgroup / "memory.current").read_text())
+            inactive, reclaimable = int(stats["inactive_file"]), int(stats["slab_reclaimable"])
+            if min(current, inactive, reclaimable) < 0 or inactive + reclaimable > current:
+                raise ValueError("Memory counters changed during read")
+            samples[name] = current - inactive - reclaimable
+        except FileNotFoundError:
+            # Stopped/deleted guests disappear before the disk/list snapshot updates.
+            continue
+        except (OSError, ValueError, KeyError) as error:
+            errors.append(f"{name}: {error}")
+    return samples, errors
+
+
+def render(samples, known, interval):
+    lines = []
+    for name, value in sorted(samples.items()):
+        chart = "factory_memory." + name
+        if name not in known:
+            lines.extend([
+                f"CHART {chart} '' 'Container RAM excluding reclaimable cache' 'MiB' "
+                f"'incus_memory' 'factory.container_memory' line 80000 {interval}",
+                "DIMENSION ram '' absolute 1 1048576",
+            ])
+            known.add(name)
+        lines.extend([f"BEGIN {chart}", f"SET ram = {value}", "END"])
+    # A blank line is a Netdata protocol keepalive even with no running guests.
+    return "\n".join(lines) + "\n\n"
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("interval", nargs="?", type=int, default=10)
+    parser.add_argument("--snapshot", type=Path,
+                        default=Path("/usr/share/netdata/web/factory/incus-storage.json"))
+    parser.add_argument("--cgroup-root", type=Path, default=Path("/host/sys/fs/cgroup"))
+    parser.add_argument("--once", action="store_true")
+    parser.add_argument("--benchmark", type=int, metavar="SAMPLES")
+    args = parser.parse_args()
+    if args.interval < 1 or (args.benchmark is not None and args.benchmark < 1):
+        parser.error("Interval and benchmark count must be positive")
+    if args.benchmark:
+        before = resource.getrusage(resource.RUSAGE_SELF)
+        start = time.perf_counter()
+        for _ in range(args.benchmark):
+            samples, errors = collect(args.snapshot, args.cgroup_root)
+        after = resource.getrusage(resource.RUSAGE_SELF)
+        cpu = after.ru_utime + after.ru_stime - before.ru_utime - before.ru_stime
+        print(json.dumps({"samples": args.benchmark, "containers": len(samples), "errors": errors,
+                          "wall_ms_per_sample": (time.perf_counter()-start)*1000/args.benchmark,
+                          "cpu_ms_per_sample": cpu*1000/args.benchmark,
+                          "estimated_percent_one_cpu": cpu/args.benchmark/args.interval*100,
+                          "peak_rss_kib": after.ru_maxrss,
+                          "physical_read_bytes": (after.ru_inblock-before.ru_inblock)*512}))
+        return
+    known, previous_errors = set(), None
+    while True:
+        start = time.monotonic()
+        try:
+            samples, errors = collect(args.snapshot, args.cgroup_root)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            samples, errors = {}, [str(error)]
+        if errors != previous_errors:
+            if errors:
+                print("factory-memory: " + "; ".join(errors), file=sys.stderr, flush=True)
+            previous_errors = errors
+        print(render(samples, known, args.interval), end="", flush=True)
+        if args.once:
+            return
+        time.sleep(max(0, args.interval - (time.monotonic()-start)))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (BrokenPipeError, KeyboardInterrupt):
+        pass
