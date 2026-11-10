@@ -14,11 +14,11 @@ class Element {
 const walk = node => [node,...node.children.flatMap(walk)];
 const text = node => walk(node).map(n=>n.textContent).join(' ');
 const now = Math.floor(Date.now()/1000), GiB=1024**3;
-const item = (name,size) => ({name,status:'Running',used_bytes:size*GiB,measured_at:now});
+const item = (name,size) => ({name,status:'Running',memory_limit:'2GiB',used_bytes:size*GiB,measured_at:now});
 let snapshot = {hostname:'test-host',cpu_cores:4,updated_at:now,interval_seconds:600,
   filesystems:[{path:'/',used_bytes:100*GiB,available_bytes:400*GiB}],
   instances:[item('dev-small',2),item('dev-large',5)]};
-let offline = false;
+let offline = false, noAvailable = false;
 const elements = Object.fromEntries(['host','instances','status','count','hostname','disk-updated'].map(id=>[id,new Element('div')]));
 elements.host.setAttribute('aria-busy','true');
 const document = {hidden:false,getElementById:id=>elements[id],
@@ -29,9 +29,10 @@ const context = vm.createContext({console,URLSearchParams,AbortSignal,fetch:asyn
   const params = new URL(url,'http://test').searchParams, id=params.get('chart');
   assert.equal(Number(params.get('before'))-Number(params.get('after')),3600);
   if (id.includes('dev-new')) return {ok:false,status:404};
-  const cpu = id.endsWith('.cpu'), hostRam=id==='system.ram';
-  const dimensions=cpu?['user','system']:hostRam?['free','used','cached','buffers']:['ram','swap'];
-  const values=cpu?[20,10]:hostRam?[1024,2048,3072,0]:[512,0];
+  if (noAvailable && id==='mem.available') return {ok:false,status:404};
+  const cpu = id.endsWith('.cpu'), hostRam=id==='system.ram', available=id==='mem.available';
+  const dimensions=cpu?['user','system']:hostRam?['free','used','cached','buffers']:available?['avail']:['ram','swap'];
+  const values=cpu?[20,10]:hostRam?[1024,2048,3072,0]:available?[4096]:[512,0];
   return {ok:true,json:async()=>({dimension_names:dimensions,latest_values:values,last_entry:now,
     after:now-3600,before:now,result:{data:[[now-60,...values],[now-20,...values]]}})};
 }});
@@ -41,8 +42,10 @@ context.document=document;
   await context.runRefresh();
   assert.equal(elements.instances.children.length,2);
   assert(text(elements.instances.children[0]).includes('large'));
-  assert(text(elements.instances.children[0]).includes('7,5')); // 30% of one core / four host cores.
-  assert.equal(elements.status.textContent,'En vivo');
+  assert(text(elements.instances.children[0]).includes('7.5')); // 30% of one core / four host cores.
+  assert(text(elements.instances.children[0]).includes('of 2 GiB'));
+  assert(text(elements.host).includes('4 GiB available'));
+  assert.equal(elements.status.textContent,'Live');
   const plots=walk(elements.host).filter(n=>n.className==='plot');
   assert.equal(plots.length,2);
   assert(!walk(elements.host).some(n=>n.attrs.d?.includes('NaN')));
@@ -52,15 +55,20 @@ context.document=document;
   await context.runRefresh();
   assert.equal(elements.instances.children.length,3);
   assert(text(elements.instances.children[0]).includes('new'));
-  assert(text(elements.instances.children[0]).includes('Esperando mediciones'));
-  assert.equal(elements.status.textContent,'Hay mediciones pendientes');
+  assert(text(elements.instances.children[0]).includes('No data'));
+  assert.equal(elements.status.textContent,'Pending data');
   snapshot.instances=snapshot.instances.filter(i=>i.name!=='dev-large');
   await context.runRefresh();
   assert.equal(elements.instances.children.length,2);
   assert(!text(elements.instances).includes('large'));
+  noAvailable=true;
+  await context.runRefresh();
+  assert(text(elements.host).includes('Available: —'));
+  assert(text(elements.host).includes('No data'));
+  noAvailable=false;
   offline=true;
   await context.runRefresh();
-  assert.equal(elements.status.textContent,'Sin conexión');
+  assert.equal(elements.status.textContent,'Offline');
   assert.equal(elements.instances.children.length,2); // Preserve last view, rather than empty/zero data.
   console.log('Dashboard DOM behavior passed: live rows, sorting, tooltip, missing metrics and offline state');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -39,14 +39,26 @@ one server row, then its Factory containers ordered by occupied disk space.
 CPU and RAM show the last hour with the current value above each graph; disk
 is numeric only. The host also shows available disk space. There are no menus
 or time-range controls. Hover a graph, or focus it and use the arrow keys, for
-an individual timestamp/value. Theme follows the browser's light/dark preference.
+an individual timestamp/value. The UI is in English and uses Catppuccin Mocha,
+with a local SVG favicon. Labels are kept to metrics, capacity and freshness.
 
 CPU percentages use the **whole host** as denominator for both host and guest
 rows: the container's cgroup percentage is divided by the host's core count.
 This differs from native Netdata's 100%-per-core container CPU convention.
 Every row shares the same zero-based CPU and RAM graph scales, so a small
 container isn't visually magnified relative to the host or another container.
-RAM excludes host cache/buffers and guest swap. Storage uses GiB.
+Host RAM is estimated used memory, **MemTotal minus MemAvailable**, with the
+current available memory shown below it. Historical used values subtract each
+available-memory sample from the current host total (appropriate for this host's
+fixed physical memory). Missing available-memory samples remain missing, with no
+fallback to the previous incompatible "used" definition.
+
+Container RAM remains Netdata's **working set**: cgroup memory usage minus
+inactive file cache, excluding swap. It can include active file cache and is not
+directly additive with the host estimate. Each container shows its configured
+Incus memory limit below the current value, e.g. `1.7 GiB` / `of 2 GiB`. Limits
+come from the same ten-minute instance snapshot; percentage limits are identified
+as a share of host memory and absent limits are explicit. Storage uses GiB.
 
 The view refreshes every 15 seconds while visible. The instance list and disk
 measurements update on the collector's ten-minute cadence, so additions/removals
@@ -235,3 +247,4 @@ crontab -l | sed '/# factory-incus-storage$/d' | crontab -
 - [LXC/Incus collection](https://www.netdata.cloud/integrations/data-collection/containers-and-vms/lxc-containers/)
 - [Database configuration](https://learn.netdata.cloud/docs/netdata-agent/configuration/database)
 - [StatsD collection and chart configuration](https://learn.netdata.cloud/docs/collecting-metrics/statsd)
+- [Catppuccin palette](https://github.com/catppuccin/palette)
