@@ -151,7 +151,12 @@ removes credentials/instance identity, stops it and publishes private aliases:
 To test a candidate before replacing `agent-base`, set `AGENT_IMAGE_PROMOTE=0`
 on the host command (`ssh user@newserver "AGENT_IMAGE_PROMOTE=0 bash -s -- ..."`).
 The script publishes only the immutable alias. After testing a container launched
-from that alias, promote its fingerprint with `incus image alias update agent-base FINGERPRINT`.
+from that alias, promote its fingerprint:
+
+```bash
+incus image alias delete agent-base
+incus image alias create agent-base FINGERPRINT
+```
 
 The image records both complete source revisions in its properties. A failed
 builder remains for diagnosis; a successful builder is deleted. Existing working
