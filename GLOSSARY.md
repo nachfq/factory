@@ -1,6 +1,8 @@
 # Interactive agents
 
-Terminology for delegation between Factory's independent interactive agents. Current scope: the Pi ↔ Pi prototype described in [the plan](docs/pi-agents-prototype.md).
+Terminology for delegation between Factory's independent interactive agents.
+The [current guide](docs/full-agents.md) describes the supported Pi↔Pi and
+Codex↔Codex workflows; mixed-harness messaging is not implemented.
 
 ## Language
 

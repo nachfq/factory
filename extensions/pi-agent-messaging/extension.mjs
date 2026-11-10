@@ -1,6 +1,6 @@
 import { identity, linkPeer, listen, send, runtimeDirectory, MAX_PENDING } from './messaging.mjs';
 
-/** Explicitly loaded experiment; no resources are opened by the factory. */
+/** Pi lifecycle integration; no resources are opened by the factory. */
 export default function agentMessaging(pi) {
   let self;
   let close;
@@ -35,7 +35,7 @@ export default function agentMessaging(pi) {
   }
 
   pi.registerFlag('agent-messaging-dir', {
-    description: 'Private runtime directory for the local messaging experiment',
+    description: 'Private runtime directory for local agent messaging',
     type: 'string',
     default: runtimeDirectory(),
   });

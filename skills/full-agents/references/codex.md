@@ -1,9 +1,9 @@
 # Codex adapter (Codex coordinator ↔ Codex workers)
 
-This retains the existing `codex-full-agents` mechanism, without changing the
-installed skill. The generalized experimental skill has not yet been exercised
-end-to-end on this path. Do not use it with a Pi coordinator: `codex queue` cannot
-address a Pi session, and a return bridge has not been implemented.
+Use Codex's native queue for communication between full interactive Codex
+sessions. This is the Codex adapter of the shared `full-agents` skill. Do not use
+it with a Pi coordinator: `codex queue` cannot address a Pi session, and a return
+bridge has not been implemented.
 
 ## Start and name
 
@@ -42,8 +42,11 @@ Use safely quoted arguments or Python subprocess arrays for messages:
 codex queue --thread "$RECIPIENT_THREAD_ID" --message "$MESSAGE"
 ```
 
-A successful queue command means enqueued, not processed. Keep the common event
-conventions and review boundaries. Never pass a Pi ID to `codex queue`, even if it
+A successful queue command means enqueued, not processed. The installed live
+trial delivered registration/question/ready after coordinator turns yielded;
+the queued reply activated the worker without a manual wake-up. Still verify the
+recipient's actual response rather than treating enqueue success as processing.
+Keep the common event conventions and review boundaries. Never pass a Pi ID to `codex queue`, even if it
 looks like a valid UUID. Report failed sends or exited sessions; no external crash
 monitor or automatic restart is provided.
 

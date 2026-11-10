@@ -192,9 +192,11 @@ def install(args):
     skills = args.skills_dir.expanduser().absolute()
     commands = args.bin_dir.expanduser().absolute()
     codex_home = directory('CODEX_HOME', Path.home() / '.codex')
+    pi_extensions = directory('PI_CODING_AGENT_DIR', Path.home() / '.pi/agent') / 'extensions'
     sources = data / 'factory/skill-sources'
     links = {skills / p.name: p.resolve() for p in sorted((ROOT / 'skills').iterdir())
              if (p / 'SKILL.md').is_file()}
+    links[pi_extensions / 'pi-agent-messaging'] = ROOT / 'extensions/pi-agent-messaging'
     sidequestion = ROOT / 'skills/sidequestion/scripts/sidequestion.py'
     if sidequestion.is_file():
         links[commands / 'sidequestion'] = sidequestion
@@ -248,14 +250,16 @@ def install(args):
         print(f'Linked {target} -> {source}')
     for target_name, source_name in previous.items():
         target = Path(target_name)
-        if target.parent in [skills, commands] and target not in links and target.is_symlink() and target.readlink() == Path(source_name):
+        if (target.parent in [skills, commands, pi_extensions] and target not in links
+                and target.is_symlink() and target.readlink() == Path(source_name)):
             target.unlink()
             print(f'Removed retired managed link: {target}')
     prepare_workers(config, data)
     state.mkdir(parents=True, exist_ok=True)
     ledger.write_text(json.dumps({str(k): str(v) for k, v in links.items()}, indent=2) + '\n')
     plugin_record.write_text(json.dumps(desired_plugins, indent=2) + '\n')
-    print('Installed skill bundle. Skills are available on your next Codex turn.')
+    print('Installed full-agents skill and Pi messaging extension. '
+          'Use /reload in Pi; Codex sees skills on its next turn.')
 
 
 def main():

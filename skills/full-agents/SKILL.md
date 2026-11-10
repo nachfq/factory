@@ -1,6 +1,6 @@
 ---
 name: full-agents
-description: Delegate scoped work to full interactive Pi or Codex agents in Herdr tabs, with independent branches and worktrees and explicit agent messaging. Use when the user wants workers they can enter and talk to directly. Experimental; mixed-harness messaging is not implemented.
+description: Delegate scoped work to full interactive Pi or Codex agents in Herdr tabs, with independent branches and worktrees and explicit agent messaging. Use when the user wants workers they can enter and talk to directly. Mixed-harness messaging is not implemented.
 ---
 
 # Independent interactive agents

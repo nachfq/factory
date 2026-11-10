@@ -4,7 +4,7 @@ Factory owns both our skills and the list of external skills to install:
 
 ```text
 skills/
-  codex-full-agents/   Independent Codex sessions, branches and Herdr tabs
+  full-agents/         Shared Pi/Codex workflow; Pi messaging validated, mixed blocked
   herdr-nvim/          Selection reading, file display and temporary highlights
   sidequestion/        Temporary Herdr/Codex detours and explicit summary handoff
 skills.yaml           External repositories, exact revisions and skill paths
@@ -12,7 +12,8 @@ skills.yaml           External repositories, exact revisions and skill paths
 
 Our skills moved from `harness-fq` and the local `herdr-codex.nvim` checkout.
 The editor plugin remains a separate project. Personal desktop notes remain in
-`harness-fq`; all three generic skills belong to the common image.
+`harness-fq`; the generic skills belong to the common image. `full-agents`
+replaces the former `codex-full-agents` skill with shared harness adapters.
 
 ## Install
 
@@ -32,6 +33,13 @@ runs this command after installing tools and applying dotfiles.
 Own skills link directly from this checkout into `~/.agents/skills/`.
 The `sidequestion` helper also links into `~/.local/bin/`. Both are managed by
 the same installer, which preserves an older command symlink with `--replace`.
+`full-agents` is an ordinary skill; it adds no wrapper command. The installer also
+links `extensions/pi-agent-messaging/` into
+`${PI_CODING_AGENT_DIR:-~/.pi/agent}/extensions/pi-agent-messaging` for Pi's native
+auto-discovery. Its manifest declares the `.mjs` entry point. This uses the same
+conflict checks and managed-link ledger, without rewriting settings or starting
+agents. Install Pi separately with `./setup-agent.sh install-pi`; the image recipe
+includes that step. The former managed `codex-full-agents` link is retired.
 
 Matt is installed with Codex's native plugin manager, using the upstream
 marketplace and plugin manifests. The equivalent commands for the current pin
@@ -76,7 +84,9 @@ conflicts are checked before changing links. Existing unrelated skills are
 preserved. Re-running keeps matching links and installed native plugins.
 Ordinary third-party checkouts are verified clean; local edits cause an error
 so they can be preserved before updating. Skills are available on the next Codex
-turn; an existing image or environment is not automatically updated by a push.
+turn. Pi discovers the shared `~/.agents/skills/` directory at startup or with
+`/reload`; loading skills alone does not activate extensions. An existing image
+or environment is not automatically updated by a push.
 
 ## Add, remove or update
 
@@ -126,12 +136,30 @@ commands. Installing it does not create a fork or start an agent.
 
 ## Full agents and editor integration
 
+Use the installed `full-agents` skill for scoped delegation, explicitly with
+`/skill:full-agents` in Pi or through a standing instruction in `AGENTS.md`.
+There is no separate launcher command. Agree on an assignment before creating
+workers; persistent instructions do not grant additional authorization.
+
+Pi needs `extensions/pi-agent-messaging/extension.mjs` loaded in both coordinator
+and workers. After installation, ordinary Pi startup or `/reload` discovers the
+installed extension automatically. No wrapper or settings-file edit is needed.
+Skills and `AGENTS.md` select instructions; the installed extension supplies
+executable messaging. Do not open a second writer on a live session. See [the skill guide](../skills/full-agents/README.md)
+for supported pairings and [the extension guide](../extensions/pi-agent-messaging/README.md)
+for linking and delivery semantics. Both Pi↔Pi and Codex↔Codex have live evidence
+through the installed shared skill, including registration, question/reply and
+result delivery. Mixed-harness workers remain blocked.
+The shared skill is the only full-agent entry point; Codex sessions still require
+their own authentication, which is intentionally absent from images.
+
 Full-agent worker preferences live in `~/.config/factory/config.json`. On the
 laptop, the first install copies only `workers` from the former
 `~/.config/harness-fq/config.json`; personal profiles/context are left there.
 Existing Factory preferences are preserved. Fresh environments get a worktree
 directory, GPT-6.1 Sol/high implementers, xhigh reviewers, full access (YOLO)
-and the agent/Neovim/LazyGit layout. The skill also supports the former config
+and the agent/Neovim/LazyGit layout. YOLO is Codex-only; Pi keeps its own tool
+and permission policy. The skill also supports the former config
 as a fallback when used independently. Worker creation still requires an
 explicit user assignment and a local Herdr session.
 
@@ -153,3 +181,8 @@ backups, conflicts, retirement, modified sources and preference migration.
 When Codex is installed, native plugin tests use the same local Git fixture to
 verify migration, pinned updates and retirement without public network access.
 The sidequestion tests cover fork identity, explicit handoff and child cleanup.
+Run the model-free messaging suite separately:
+
+```sh
+node --test extensions/pi-agent-messaging/messaging.test.mjs
+```

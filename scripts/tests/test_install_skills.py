@@ -29,6 +29,7 @@ class InstallSkillsTest(unittest.TestCase):
             'XDG_DATA_HOME': str(self.home / 'data'), 'XDG_STATE_HOME': str(self.home / 'state'),
             'GIT_CONFIG_GLOBAL': str(self.home / 'gitconfig'), 'GIT_CONFIG_NOSYSTEM': '1',
             'CODEX_HOME': str(self.home / 'codex'),
+            'PI_CODING_AGENT_DIR': str(self.home / '.pi/agent'),
         }
         (self.home / 'codex').mkdir()
         (self.home / 'gitconfig').write_text(
@@ -86,6 +87,11 @@ class InstallSkillsTest(unittest.TestCase):
         self.assertTrue((self.skills / 'herdr-nvim/scripts/show_file.py').is_file())
         self.assertEqual((self.home / '.local/bin/sidequestion').resolve(),
                          ROOT / 'skills/sidequestion/scripts/sidequestion.py')
+        self.assertEqual((self.skills / 'full-agents').resolve(), ROOT / 'skills/full-agents')
+        self.assertFalse((self.skills / 'codex-full-agents').is_symlink())
+        self.assertEqual((self.home / '.pi/agent/extensions/pi-agent-messaging').resolve(),
+                         ROOT / 'extensions/pi-agent-messaging')
+        self.assertFalse((self.home / '.pi/agent/settings.json').exists())
         workers = json.loads((self.home / 'config/factory/config.json').read_text())['workers']
         self.assertTrue(Path(workers['worktrees_root']).is_dir())
         self.assertTrue(workers['yolo'])
@@ -117,8 +123,11 @@ class InstallSkillsTest(unittest.TestCase):
         self.assertEqual((conflict / 'mine').read_text(), 'Keep me')
 
     def test_dry_run_does_not_write_or_fetch(self):
-        self.install('--dry-run')
+        result = self.install('--dry-run')
+        self.assertIn(str(self.skills / 'full-agents'), result.stdout)
         self.assertFalse(self.skills.exists())
+        self.assertFalse((self.home / '.local').exists())
+        self.assertFalse((self.home / '.pi').exists())
         self.assertFalse((self.home / 'data').exists())
         self.assertFalse((self.home / 'config').exists())
 
@@ -155,6 +164,43 @@ class InstallSkillsTest(unittest.TestCase):
         current = self.home / 'config/factory/config.json'
         self.assertEqual(json.loads(current.read_text()), dict(workers=workers))
         self.assertIn('profiles', json.loads(previous.read_text()))
+
+    def test_pi_extension_conflict_prevents_all_link_changes(self):
+        target = self.home / '.pi/agent/extensions/pi-agent-messaging'
+        target.mkdir(parents=True)
+        (target / 'personal').write_text('Keep me\n')
+        self.install('--replace', success=False)
+        self.assertEqual((target / 'personal').read_text(), 'Keep me\n')
+        self.assertFalse(self.skills.exists())
+        self.assertFalse((self.home / 'data').exists())
+
+    def test_pi_agent_dir_override_preserves_settings(self):
+        agent = self.home / 'custom Pi agent'
+        agent.mkdir()
+        settings = agent / 'settings.json'
+        original = '{ "defaultModel": "personal", "extensions": ["/personal.js"] }\n'
+        settings.write_text(original)
+        self.env['PI_CODING_AGENT_DIR'] = str(agent)
+        self.install()
+        self.assertEqual(settings.read_text(), original)
+        self.assertEqual((agent / 'extensions/pi-agent-messaging').resolve(),
+                         ROOT / 'extensions/pi-agent-messaging')
+        self.assertFalse((self.home / '.pi').exists())
+
+    def test_previous_managed_codex_skill_is_retired_without_removing_unrelated_skills(self):
+        self.skills.mkdir(parents=True)
+        old = self.skills / 'codex-full-agents'
+        old_source = ROOT / 'skills/codex-full-agents'
+        old.symlink_to(old_source)
+        unrelated = self.skills / 'personal'
+        unrelated.symlink_to(self.upstream)
+        ledger = self.home / 'state/factory/skills.json'
+        ledger.parent.mkdir(parents=True)
+        ledger.write_text(json.dumps({str(old): str(old_source)}))
+        self.install()
+        self.assertFalse(old.is_symlink())
+        self.assertEqual((self.skills / 'full-agents').resolve(), ROOT / 'skills/full-agents')
+        self.assertEqual(unrelated.resolve(), self.upstream)
 
     def test_unpinned_revision_and_escaping_source_path_fail_before_writes(self):
         entry = yaml.safe_load(self.manifest.read_text())

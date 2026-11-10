@@ -1,8 +1,8 @@
-# Pi agent messaging experiment
+# Pi agent messaging
 
-A small, explicitly loaded Pi extension for communication between independent interactive sessions. It does not launch agents, manage worktrees, or change `codex-full-agents`.
+A small Pi extension for communication between independent interactive sessions. It does not launch agents or manage worktrees; orchestration belongs to the shared `full-agents` skill.
 
-Design and scope: [prototype plan](../../docs/pi-agents-prototype.md). Terminology: [glossary](../../GLOSSARY.md).
+Design and scope: [current guide](../../docs/full-agents.md). Terminology: [glossary](../../GLOSSARY.md).
 
 ## Files and requirements
 
@@ -11,31 +11,31 @@ Design and scope: [prototype plan](../../docs/pi-agents-prototype.md). Terminolo
 - `messaging.test.mjs`: real-socket tests and a model-free Pi API test double.
 - `fixtures/dialog.mjs`: optional test-only confirmation command; not loaded by the messaging extension.
 
-Requires Unix, Node.js 20+ and a Pi version with `ui_prompt_start`, `ui_prompt_end`, `agent_settled`, and custom `followUp` messages. Tested with Node.js 26.13.0; loading/registration was also checked with the installed Pi 1.5.0 loader. No added dependencies or build step.
+Requires Unix, Node.js 22.19+ (Pi's runtime minimum) and a Pi version with `ui_prompt_start`, `ui_prompt_end`, `agent_settled`, and custom `followUp` messages. Tested with Node.js 26.13.0; loading/registration was also checked with the installed Pi 1.5.0 loader. No added dependencies or build step.
 
 ## Run model-free tests
 
 ```sh
 cd /home/dev/factory
-node --test experiments/pi-agent-messaging/messaging.test.mjs
+node --test extensions/pi-agent-messaging/messaging.test.mjs
 ```
 
 Tests use private temporary directories and real sockets. They cover authentication, linking, wire-size limits, acceptance, unavailable recipients, uncertain delivery, active-receiver collisions, bounded inboxes, dialog deferral, shutdown, and retained identity/link metadata. Pi delivery behavior is exercised through an API test double; this is not an end-to-end interactive test.
 
-## Loading and linking (for the later interactive test)
+## Loading and linking
 
-**Do not launch the interactive test until Delivery 1 has been reviewed.** These are manual instructions, not an automatic launcher. Herdr supports `--kind pi`; tab/worktree automation is outside this delivery.
+For the full delegation workflow, use [the full-agents skill](../../skills/full-agents/README.md). Factory's `install-skills` command links this directory into Pi's native user extensions directory; `package.json` declares `extension.mjs` as its entry point. Ordinary Pi startup or `/reload` loads it without a wrapper or settings rewrite. Select the skill explicitly or through `AGENTS.md`. The manual commands below are an alternative for loading messaging without installation or worker orchestration.
 
 Load the extension explicitly in each of two separate interactive Pi sessions:
 
 ```sh
-pi -e /home/dev/factory/experiments/pi-agent-messaging/extension.mjs --name pi-msg-coordinator
+pi -e /path/to/factory/extensions/pi-agent-messaging/extension.mjs --name pi-msg-coordinator
 ```
 
 In the other tab:
 
 ```sh
-pi -e /home/dev/factory/experiments/pi-agent-messaging/extension.mjs --name pi-msg-worker
+pi -e /path/to/factory/extensions/pi-agent-messaging/extension.mjs --name pi-msg-worker
 ```
 
 These commands use normal Pi settings and permissions. They neither select a different model nor install the extension globally. Use fresh test sessions rather than opening a second writer on the live coordinator's session file. Loading this extension does not modify an already-running Pi process; continuing an existing conversation with it requires stopping that process and resuming the session with `-e`, after user agreement.
@@ -82,4 +82,6 @@ Contact files are private (0600); the runtime directory is private (0700). Each 
 
 This protects against accidental connections and other OS users, **not malicious processes running as the same OS user**. Such processes may read or modify credentials and impersonate linked agents. This extension is not a sandbox or an approval-enforcement system. Messages and assignment instructions cannot grant authority beyond the user's scope.
 
-No model calls or interactive agents were started for Delivery 1. After user review and authorization, two live Pi sessions demonstrated the round trip, idle wake-up, busy-recipient deferral, continuity after worker `/reload`, extension UI dialog deferral, a clear error for a gracefully closed recipient, and communication after resuming the same session without relinking, and routing isolation on native `/new` and `/fork`; see the [recorded evidence](../../docs/pi-agents-prototype.md#delivery-2-live-test-evidence). Copied assignment text in a fork is not rewritten automatically; its actual transport identity and links are independent. The prototype has no Codex adapter, global discovery, daemon, persistent message queue, automatic retry, or automatic session cleanup.
+Live Pi checks demonstrated the round trip, idle wake-up, busy-recipient and dialog deferral, reload, graceful close/resume without relinking, and new/fork routing isolation. The installed shared skill also completed repository-worker trials. See [the validation summary](../../docs/full-agents.md#validation-and-limits) and [detailed historical evidence](../../docs/pi-agents-prototype.md#delivery-2-live-test-evidence).
+
+Copied assignment text in a fork is not rewritten automatically; its actual transport identity and links are independent. This Pi transport does not provide a Codex bridge, automatic peer discovery, a daemon, persistent message queue, automatic retry or session cleanup. Native extension auto-discovery is installation behavior, not automatic linking between agents.

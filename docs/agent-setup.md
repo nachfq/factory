@@ -24,13 +24,14 @@ As the environment's regular user, after cloning Factory and your dotfiles:
 cd ~/factory
 ./setup-agent.sh install-runtimes
 ./setup-agent.sh install-codex
+./setup-agent.sh install-pi
 ./setup-agent.sh configure-codex
 ./setup-agent.sh install-herdr
 ./setup-agent.sh apply-dotfiles ~/dotfiles
 ./setup-agent.sh install-skills
 ```
 
-The last command calls the dotfiles checkout's `apply.sh apply` and
+The `apply-dotfiles` command calls the dotfiles checkout's `apply.sh apply` and
 `apply.sh plugins`. It does not contain a second copy of those configs. Older
 pinned dotfiles revisions with `setup-agent.sh apply/plugins` remain supported.
 Applying configs is explicit: the other commands leave editor/shell config alone.
@@ -42,11 +43,16 @@ The tooling remains the same as before the repository split:
 - Mise, Node LTS/npm, and uv through their official installers.
 - Codex using `curl -fsSL https://chatgpt.com/codex/install.sh | sh`, with no
   Codex version pin. Re-run `install-codex` to update.
+- Pi using `curl -fsSL https://pi.dev/install.sh | sh`, without a Pi release pin.
+  Re-run `install-pi` or use Pi's updater to update. The skill installer links the
+  messaging extension into Pi's native extension directory without rewriting its
+  settings. Start ordinary `pi` or use `/reload` in an existing session.
 - Codex defaults: `gpt-6.1-sol`, reasoning `high`, full access and no approval
   prompts. `configure-codex` preserves other settings and hook trust, backs up
   changes under `~/.local/state/factory/backups`, and leaves auth files alone.
 - Herdr through its official installer, with its Codex integration.
-- The [shared skill bundle](skills.md): our own Herdr/Codex skills and the pinned
+- The [shared skill bundle](skills.md): `full-agents` for Pi/Codex, editor and
+  sidequestion skills, and the pinned
   native Matt Pocock plugin. Requires Python's PyYAML (`python3-yaml` on Ubuntu,
   `python-yaml` on Arch), installed by the Ubuntu tool step.
 
@@ -57,7 +63,8 @@ also requires enabling nesting on that particular Incus instance. The usual
 full-access agent workflow uses the container as its isolation boundary.
 
 Rust, browsers, Docker daemons and project services remain project additions.
-GitHub/Codex logins belong to each environment and are configured separately.
+GitHub, Codex and Pi logins belong to each environment and are configured
+separately; the image contains no agent credentials.
 New Codex sessions use changed defaults; use `/model` in an already-open session
 to change that session's model/reasoning choice.
 

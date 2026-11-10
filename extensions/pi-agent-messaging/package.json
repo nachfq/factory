@@ -1,0 +1,7 @@
+{
+  "name": "factory-pi-agent-messaging",
+  "private": true,
+  "pi": {
+    "extensions": ["./extension.mjs"]
+  }
+}

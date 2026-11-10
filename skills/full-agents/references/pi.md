@@ -1,6 +1,6 @@
 # Pi adapter (Pi coordinator ↔ Pi workers)
 
-This adapter requires the experimental [messaging extension](../../pi-agent-messaging/README.md)
+This adapter requires the [messaging extension](../../../extensions/pi-agent-messaging/README.md)
 in **both** sessions. Do not use it for a Codex coordinator; an external client for
 returning Pi events to Codex has not been implemented.
 
@@ -17,16 +17,16 @@ and resuming the same session with explicit `-e`, subject to user agreement; do
 not restart it or open a replacement coordinator silently. Adding `--skill` alone
 does not load the messaging extension.
 
-Resolve these absolute paths from the experimental skill location, not the
-worker's project directory:
+Resolve these absolute paths from the skill's real location in Factory, not the
+installed symlink or worker's project directory:
 
-- `SKILL_DIR`: directory containing this skill's `SKILL.md`.
-- `EXTENSION`: `SKILL_DIR/../pi-agent-messaging/extension.mjs`.
+- `SKILL_DIR`: canonical directory containing this skill's `SKILL.md` (resolve symlinks).
+- `EXTENSION`: `SKILL_DIR/../../extensions/pi-agent-messaging/extension.mjs`.
 - `WORKER_CONTRACT`: `SKILL_DIR/references/worker.md`.
 
 Verify they exist and remain available as read-only inputs. A project worktree
-may not contain Factory's experimental files. Do not copy credentials or install
-the extension globally. Derive `MESSAGING_DIR` from the actual coordinator contact
+may not contain Factory's integration files. Do not copy credentials or change
+global installation/settings as a side effect of launching a worker. Derive `MESSAGING_DIR` from the actual coordinator contact
 path; do not reuse a hardcoded temporary directory from recorded tests.
 
 ## Start a worker

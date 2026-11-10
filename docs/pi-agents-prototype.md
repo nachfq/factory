@@ -1,10 +1,23 @@
-# Interactive Pi agents prototype
+# Interactive agents: implementation history
+
+> Archived development record. Sections below are chronological; later decisions
+> superseded earlier prototype restrictions and paths. Use [the current guide](full-agents.md)
+> for supported pairings, installation and validation. This history is not an
+> active task plan or a source of new authorization.
 
 ## Status and authorization
 
 Design agreed through an interview with the user. The user authorized Delivery 1 and then explicitly requested the interactive test. Delivery 1 is implemented. Live checks have demonstrated the Pi ↔ Pi round trip, idle wake-up, busy-recipient deferral, worker `/reload` continuity, extension UI dialog deferral, graceful close/resume behavior, and identity isolation on `/new` and `/fork`.
 
-The user requested small, reviewable steps. The existing skill remains unchanged.
+The user requested small, reviewable steps. The latest authorization promotes the
+shared workflow to normal installation and retires `codex-full-agents`; earlier
+restrictions below are historical and superseded only within this new scope.
+
+The user subsequently authorized integration with Factory's installer. Canonical
+sources now live in `skills/full-agents/` and `extensions/pi-agent-messaging/`;
+the former `experiments/` paths remain compatibility symlinks for live sessions.
+Earlier delivery notes below retain their historical experimental paths. See the
+normal-installation section for the current setup, live checks and blockers.
 
 The user authorized tracking the prototype on `work/full-agents` in the existing `/home/dev/factory` checkout, without another worktree. The branch was created from `f15eb759fb7925ddd412204892eedb2cce9b31ea`, preserving the unrelated commits already on `main`. The user subsequently authorized a local checkpoint commit of the prototype on this branch; publication is not authorized. The separate worker test edit remains uncommitted on `work/skill-smoke-pi` and has not been integrated here. All agents sharing the original checkout see its current branch.
 
@@ -113,7 +126,8 @@ If the current coordinator session cannot load the extension directly, explain t
 
 ## Delivery 1 review evidence
 
-Files are in [`experiments/pi-agent-messaging/`](../experiments/pi-agent-messaging/README.md):
+The original files were in `experiments/pi-agent-messaging/`; their current
+location is [`extensions/pi-agent-messaging/`](../extensions/pi-agent-messaging/README.md):
 
 - `extension.mjs`: lifecycle hooks, bounded inbox, linking commands, and sending tool (122 lines).
 - `messaging.mjs`: private contact metadata and socket transport (177 lines).
@@ -217,7 +231,8 @@ Keep the implementation under `experiments/` during validation. Once promoted ou
 
 After discussing the next step, the user explicitly authorized preparing the shared `full-agents` skill as an experiment, using `codex-full-agents` as its base rather than adding a separate Pi-only workflow.
 
-The documentation-only draft is at [`experiments/full-agents/`](../experiments/full-agents/README.md):
+The documentation-only draft was at `experiments/full-agents/`; its current
+location is [`skills/full-agents/`](../skills/full-agents/README.md):
 
 - `SKILL.md`: shared harness selection, assignment, launch, coordination, and review instructions.
 - `references/herdr.md`: shared branch/worktree, tab, optional editor, and resume procedure.
@@ -293,6 +308,149 @@ The worker reported ready through `agent_message`, and the coordinator reviewed 
 
 This validates a bounded test-file edit/check/review cycle and a real human authorization checkpoint. It does not validate production behavior changes or cross-harness operation.
 
-## Next step
+## Installer integration
 
-Review the completed Pi trials and choose the next scoped step; Codex validation is explicitly deferred by the user. Keep the existing sessions/worktrees available and do not promote, install, move, integrate, or clean up either experiment automatically. Do not unify skills, add Codex support, install globally, integrate changes, or clean up sessions without further authorization. Record any newly discovered design questions rather than silently expanding scope.
+After the local prototype checkpoint (`5626b53`), the user authorized integrating
+the validated Pi workflow with the existing installer, without replacing
+`codex-full-agents` or automatically changing global configuration.
+
+- Moved canonical sources to `skills/full-agents/` and
+  `extensions/pi-agent-messaging/`; no messaging implementation changes.
+- Kept `experiments/full-agents` and `experiments/pi-agent-messaging` as relative
+  compatibility symlinks, preserving existing session arguments and read-only
+  assignment paths. No sessions or worktrees were removed or restarted.
+- Updated the Pi adapter to resolve the skill's canonical location before deriving
+  the extension path, including when the skill is installed via a symlink.
+- The existing installer discovers `full-agents` as an ordinary own skill, using
+  its existing preflight, conflict handling, managed links and replacement backups.
+  No additional command or global Pi configuration is installed.
+- At user request, removed a proposed convenience wrapper and its tests before
+  commit. The entry point is the skill; `AGENTS.md` can make its selection a
+  standing instruction. Skill instructions do not load executable extensions;
+  messaging is enabled through Pi's native settings or explicit `-e` option.
+- The default bundle's native Codex plugin dependency remains unchanged; Pi must
+  be installed separately. Installing the skill does not start Pi.
+
+Validation uses isolated temporary homes and local Git fixtures, not a live user
+installation:
+
+- Nine non-native installer tests passed, including dry-run reporting/no writes,
+  coexistence with `codex-full-agents`, no Pi settings creation, and reinstall
+  idempotence. The separate worker's preservation test was not integrated here.
+- Wider script suite: 28 selected, 27 passed, one existing Incus/SSH integration
+  test skipped because laptop homelab access is required. Two native/plugin
+  cases were excluded; no Codex worker validation was performed.
+- All 11 model-free messaging tests passed from the new canonical location.
+- The installed Pi 1.5.0 loader loaded both extension paths and deduplicated
+  installed/canonical/compatibility skill paths without diagnostics. No session,
+  model turn or receiver was started for this check.
+
+After explicit installation, invoke the skill or select it through `AGENTS.md`.
+For Pi messaging, load the extension through native settings or `-e`; the
+installer does not configure this automatically. Resuming requires explicit
+`--session` and first stopping any process writing that exact conversation. See [the skill guide](../skills/full-agents/README.md)
+and [bundle installation](skills.md).
+
+## Normal installation and image parity
+
+The user subsequently clarified that this is no longer an experiment, authorized
+retiring `codex-full-agents`, and requested installation in this environment using
+the same path as a newly instantiated image, followed by live tests. This
+supersedes the earlier restrictions on installing the shared workflow here.
+It does not authorize publishing images, pushing commits, unrelated configuration
+changes, session cleanup, or claiming mixed-harness support before implementation.
+
+- `full-agents` is now the only full-agent skill in Factory. Removed the old
+  skill's three source files. The installer retires its previous managed symlink
+  through the existing ledger; it does not remove unrelated skills.
+- Added a native Pi extension manifest and a managed link under
+  `${PI_CODING_AGENT_DIR:-~/.pi/agent}/extensions/pi-agent-messaging`. Ordinary Pi
+  startup or `/reload` discovers it; no wrapper or settings rewrite is needed.
+- Added `setup-agent.sh install-pi` using Pi's official installer and included it
+  in the image recipe/tool checks. Image preparation also refuses a Pi auth file,
+  just as it refuses Codex/GitHub credentials. No image was built or published.
+- Pi 1.5.0 and Codex 0.167.0 were already installed in this environment, so their
+  binaries were not unnecessarily reinstalled or updated during live tests.
+- Ran the real `install-skills --dry-run`, then `install-skills` twice. The first
+  run linked the shared skill and native extension and retired the old skill;
+  the second kept matching links. Snapshots verified that existing Pi settings
+  and auth, Codex config and auth, and Factory worker preferences were unchanged.
+- All 34 script tests ran, including native Codex plugin fixture cases: 33 passed
+  and the existing homelab-dependent Incus/SSH test was skipped. All 11 messaging
+  tests passed. Shell syntax checks passed for setup and the image recipe.
+
+### Installed Pi live trial
+
+Started a normal interactive `pi --name installed-pi` in `w2:t7` / `w2:p9`, with
+no explicit skill or extension flags. Startup listed `full-agents`, `herdr-nvim`,
+and `sidequestion`, but not the retired skill, and discovered `extension.mjs`.
+`/agent-contact` worked. Actual coordinator session:
+`01a1c24b-486a-740d-a021-f2e29ef73e86`.
+
+That test coordinator followed the installed skill to create one read-only worker
+`installed-pi-worker` (`w2:t9` / `w2:pB`), actual session
+`01a1c24c-fba4-77cd-9e8f-6d7c167a476d`, on branch
+`work/installed-pi-worker` in
+`/home/dev/.local/share/factory/worktrees/nachfq/factory/installed-pi-worker`.
+Base/HEAD: `5626b539b492164eaab79de6919fa5bff5ceb491`. The installed canonical
+resources in the original checkout were explicit read-only inputs because the
+installation changes were not yet committed into that base.
+
+Registration, a worker question asking which installed directory to inspect,
+one coordinator reply, and the worker's three findings plus ready all flowed via
+`agent_message`. The worker verified the installed skill link and native manifest
+entry `./extension.mjs`. The test coordinator and invoking session independently
+verified its clean worktree and unchanged base. No worker file edits, installs,
+commits or cleanup occurred. The invoking conversation/model was not replaced;
+these were visible auxiliary test sessions, preserved for direct user inspection.
+
+### Installed Codex live trial
+
+Started normal interactive Codex in `installed-codex`, tab `w2:t8`, pane `w2:pA`.
+It initially paused at browser authentication. No task was dispatched until the
+user completed that login and confirmed it in the invoking conversation. No Pi
+credentials were copied and no alternate provider was silently selected.
+
+The installed shared skill then completed the bounded Codex↔Codex trial:
+
+- Coordinator thread: `01a1c2b8-10a1-7e42-bf29-92a4ff2c62da`, saved name
+  `installed-codex`, tab/pane `w2:t8` / `w2:pA`.
+- Worker thread: `01a1c2b9-d9a4-7972-a039-7b9458173015`, saved name
+  `installed-codex-worker`, tab/pane `w2:tA` / `w2:pC`.
+- Exactly one agent-only worker, using configured `gpt-6.1-sol`, high reasoning
+  and existing configured bypass permissions. No coordinator settings or user
+  focus were changed by commands in the trial.
+- Worktree:
+  `/home/dev/.local/share/factory/worktrees/nachfq/factory/installed-codex-worker`;
+  branch `work/installed-codex-worker`, base/HEAD
+  `5626b539b492164eaab79de6919fa5bff5ceb491`.
+- The actual worker UUID was verified, its conversation was named, and its
+  assignment supplied the installed shared worker contract and Codex adapter.
+  Original-checkout installed resources were explicit read-only inputs because
+  the installation changes were not committed into the worker base.
+
+Registration and a directory-inspection question arrived as actual native queued
+messages after coordinator turns yielded. The coordinator sent one reply with
+`codex queue`, naming the installed skill path and expected canonical target.
+That queued reply activated the worker; its subsequent queued ready report
+confirmed processing. There was no transcript polling, empty ACK exchange,
+uncertain-send retry or Herdr-prompt substitute for inter-agent messaging.
+
+The worker reported the installed skill symlink/target, the supported same-harness
+and blocked mixed pairings, and clean branch/base/status. The test coordinator and
+invoking session independently verified its clean worktree and unchanged base.
+No source edits, installation, commits, integration or cleanup occurred in the
+trial. Both Codex sessions remain available for direct user conversation.
+
+This validates the installed shared skill on Codex↔Codex and Pi↔Pi independently.
+It does not validate Pi↔Codex: that bridge remains unimplemented.
+
+## Promotion checkpoint
+
+The user authorized repository cleanup and a local commit after both installed
+same-harness trials passed. Current usage and validation are consolidated in
+`docs/full-agents.md`. The old `experiments/` symlinks remain local and ignored,
+not versioned, so preserved sessions retain their historical resource paths.
+No session or worktree cleanup is included. The separate worker's 16-line test
+remains unintegrated; Pi↔Codex transport remains unimplemented. No push or image
+publication is part of this checkpoint.
