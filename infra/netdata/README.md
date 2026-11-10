@@ -32,7 +32,34 @@ seconds, and disables ML/anomaly detection and alerts. One database tier has a
 expires old samples. The size target is soft, and metadata/logs add overhead.
 Configuration and metrics persist in Compose-managed volumes.
 
-## Native Netdata resource view
+## Simple resource dashboard
+
+Open `http://TAILSCALE_IP:19999/factory/index.html` for the compact everyday view:
+one server row, then its Factory containers ordered by occupied disk space.
+CPU and RAM show the last hour with the current value above each graph; disk
+is numeric only. The host also shows available disk space. There are no menus
+or time-range controls. Hover a graph, or focus it and use the arrow keys, for
+an individual timestamp/value. Theme follows the browser's light/dark preference.
+
+CPU percentages use the **whole host** as denominator for both host and guest
+rows: the container's cgroup percentage is divided by the host's core count.
+This differs from native Netdata's 100%-per-core container CPU convention.
+Every row shares the same zero-based CPU and RAM graph scales, so a small
+container isn't visually magnified relative to the host or another container.
+RAM excludes host cache/buffers and guest swap. Storage uses GiB.
+
+The view refreshes every 15 seconds while visible. The instance list and disk
+measurements update on the collector's ten-minute cadence, so additions/removals
+appear automatically after its next successful scan. Missing/stale readings
+remain visibly unavailable; stopped containers can retain dimmed recent history
+and their timestamped last known disk measurement. No import or layout editing
+is needed when environments change.
+
+The HTML/CSS/JS are served by the existing Netdata web server. No framework,
+external assets, new daemon or agent image change is required. Historical data
+comes from Netdata and current disk/list data from the atomic JSON snapshot.
+
+## Optional native Netdata resource view
 
 Disk samples are published by the same host collector to Netdata's built-in
 StatsD listener, bound only to `127.0.0.1:8125/UDP`. No additional service or
@@ -95,21 +122,6 @@ Check the cron log/snapshot timestamp when diagnosing freshness.
 UDP delivery is best-effort, with no application acknowledgement. One small
 datagram per metric stays below 1200 bytes; transport errors are logged without
 discarding the local snapshot. Do not expose port 8125 on LAN/Tailscale.
-
-### Previous static view
-
-Open `http://TAILSCALE_IP:19999/factory/index.html` for host CPU/RAM history and
-disk usage, followed by the same metrics for each Factory Incus environment.
-The 15-minute/1-hour/6-hour/24-hour selector queries Netdata's existing history.
-Host CPU is a percentage of the whole machine; container CPU uses 100% per
-core. RAM excludes swap, and host RAM usage excludes reclaimable cache/buffers.
-The storage figures use GiB (1024³ bytes).
-
-This is a small static page served by the existing Netdata web server, with no
-frontend build, external assets, Cloud account or additional server. It refreshes
-CPU/RAM every 15 seconds while visible; collection remains every five seconds.
-Values above the charts use the latest raw samples, independently of the
-selected history's averaging interval. Missing/stale data is marked explicitly.
 
 ### Storage sampling
 
@@ -194,6 +206,7 @@ Validate the storage accounting/failure behavior and chart transformations:
 python3 test-storage.py
 python3 test-dashboard.py
 node dashboard/test-metrics.js
+node dashboard/test-ui.js
 ```
 
 ## Inspect or remove
