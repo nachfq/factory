@@ -1,0 +1,21 @@
+id = "factory.previews"
+name = "Factory previews"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "Open container previews in this computer's browser through SSH"
+platforms = ["linux"]
+
+[[startup]]
+command = ["python3", "preview.py", "--restore"]
+
+[[actions]]
+id = "open"
+title = "Open preview"
+contexts = ["pane"]
+command = ["python3", "preview.py", "--handle-link"]
+
+[[link_handlers]]
+id = "preview"
+title = "Open preview"
+pattern = '^https?://(?:localhost|127\.0\.0\.1):[0-9]{1,5}(?:[/?#].*)?$'
+action = "open"

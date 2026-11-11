@@ -21,6 +21,7 @@ Usage: ./setup-agent.sh COMMAND [ARGUMENT]
   configure-codex  Default Codex to GPT-6.1 Sol / high with full access (YOLO).
                    Run only inside the disposable agent environment.
   install-herdr  Install/update Herdr and its Codex status integration as this user.
+  install-previews  Install private browser previews for Herdr, Pi and Codex.
   install-skills  Install own skills and the pinned third-party bundle.
                   Use --dry-run to preview, or --replace to back up old symlinks.
 
@@ -240,6 +241,10 @@ case "${1:-help}" in
     python3 "$repo_dir/scripts/configure-codex.py"
     ;;
   install-herdr) install_herdr ;;
+  install-previews)
+    if (( EUID == 0 )); then printf 'Run install-previews as the environment or client user.\n' >&2; exit 1; fi
+    python3 "$repo_dir/scripts/install-previews.py"
+    ;;
   install-skills) shift; exec python3 "$repo_dir/scripts/install-skills.py" "$@" ;;
   -h|--help|help) usage ;;
   *) usage >&2; exit 2 ;;

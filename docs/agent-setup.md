@@ -27,6 +27,7 @@ cd ~/factory
 ./setup-agent.sh install-pi
 ./setup-agent.sh configure-codex
 ./setup-agent.sh install-herdr
+./setup-agent.sh install-previews
 ./setup-agent.sh apply-dotfiles ~/dotfiles
 ./setup-agent.sh install-skills
 ```
@@ -51,6 +52,7 @@ The tooling remains the same as before the repository split:
   prompts. `configure-codex` preserves other settings and hook trust, backs up
   changes under `~/.local/state/factory/backups`, and leaves auth files alone.
 - Herdr through its official installer, with its Codex integration.
+- Private browser previews through the shared [preview workflow](previews.md).
 - The [shared skill bundle](skills.md): `full-agents` for Pi/Codex, the editor
   skill, and the pinned Matt Pocock skills for Pi and Codex. Requires Python's
   PyYAML (`python3-yaml` on Ubuntu, `python-yaml` on Arch), installed by the

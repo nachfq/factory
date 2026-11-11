@@ -237,6 +237,18 @@ def connect(name):
         start_project_panes(state, machine)
     print(f'Available in Herdr: {state["label"]} → {name}')
     print(f'SSH: ssh {state["target"]}   Project: {cwd}')
+    preview_client('attach',machine)
+
+
+def preview_client(action, machine):
+    if HOST == 'local' or not (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY')):
+        return
+    if not (HOME/'.local/bin/factory-preview').exists():
+        return
+    script=Path(__file__).resolve().parents[1]/'plugins/previews/preview.py'
+    result=subprocess.run(['python3',str(script),'--'+action,machine],capture_output=True,text=True)
+    if result.returncode:
+        print('Preview connection unavailable: '+result.stderr.strip(),file=sys.stderr)
 
 
 def create(name, repo):
@@ -305,6 +317,7 @@ def remove(name):
         profiles = json.loads(run(["herdr", "machine", "list", "--json"]))
         for profile in profiles:
             if profile["target"] == state["target"] and profile["label"] == state["label"]:
+                preview_client('detach',profile['id'])
                 run(["herdr", "machine", "remove", profile["id"]])
     incus("delete", item["name"], "--force")
     state_file.unlink(missing_ok=True)

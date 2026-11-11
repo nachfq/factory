@@ -4,6 +4,7 @@ Factory owns both our skills and the list of external skills to install:
 
 ```text
 skills/
+  browser-preview/     Ready HTML/frontend URLs through the connected Herdr client
   full-agents/         Shared Pi/Codex workflow; Pi messaging validated, mixed blocked
   herdr-nvim/          Selection reading, file display and temporary highlights
 skills.yaml           External repositories, exact revisions and skill paths

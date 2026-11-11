@@ -47,11 +47,12 @@ cd /home/dev/factory
 ./setup-agent.sh install-pi
 ./setup-agent.sh configure-codex
 ./setup-agent.sh install-herdr
+./setup-agent.sh install-previews
 ./setup-agent.sh apply-dotfiles /home/dev/dotfiles
 ./setup-agent.sh install-skills
 sudo -n true
 export PATH="$HOME/.pi/agent/bin:$PATH"
-for tool in git gh codex pi herdr nvim node npm mise uv fzf bat zoxide btop dua rsync pkg-config; do
+for tool in git gh codex pi herdr factory-preview nvim node npm mise uv fzf bat zoxide btop dua rsync pkg-config; do
   command -v "$tool"
 done
 ! command -v rustc

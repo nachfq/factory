@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+"""Stable remote entrypoint for the pinned SSH transport."""
+import os
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from preview import backend_binary, backend_environment
+binary = backend_binary()
+os.execve(binary, [str(binary), *sys.argv[1:]], backend_environment())

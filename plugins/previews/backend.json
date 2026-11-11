@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/zzjcool/herdr-forward",
+  "version": "0.4.0",
+  "license": "MIT",
+  "platforms": {
+    "x86_64": {"asset": "linux_amd64", "sha256": "6b763792d74a839d8fd3e8df78952a54085ada4c6d57c8fc2cf7f9412dcbecaa"},
+    "aarch64": {"asset": "linux_arm64", "sha256": "4f148ca8ca7afc73316bf1d36a255a117d93ae68f4038f5545faee90ce40d9d2"}
+  }
+}
