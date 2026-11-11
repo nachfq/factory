@@ -75,9 +75,21 @@ If this subnet conflicts with another network, change it consistently in the
 bridge, ACL and Docker service below.
 
 The profile uses unprivileged containers, separate UID/GID mappings, no host
-home/socket mounts, a 2-CPU cap, a 2 GiB RAM cap and manual startup. Those limits
-do not reserve resources. `security.nesting` is normally false; only the fresh
-image builder enables it temporarily for tool setup.
+home/socket mounts, a 2-CPU cap, a 4 GiB RAM cap, up to 2 GiB of additional host
+swap per container and manual startup. Those limits do not reserve resources;
+all containers share the host's physical RAM and available swap. Size the limits
+for the server and concurrent workload. `security.nesting` is normally false;
+only the fresh image builder enables it temporarily for tool setup.
+
+On an existing installation, update just the shared memory policy live with:
+
+```bash
+incus profile set agent-pilot limits.memory=4GiB limits.memory.swap=2GiB
+```
+
+This applies to current and future containers inheriting the profile without
+restarting them or rebuilding the image. Per-instance overrides take precedence.
+Host swap must already exist; the allowance does not create a guest swap file.
 
 ## Docker coexistence, when applicable
 

@@ -2,7 +2,8 @@ description: Disposable agent environment pilot; no host home or management sock
 config:
   boot.autostart: "false"
   limits.cpu: "2"
-  limits.memory: 2GiB
+  limits.memory: 4GiB
+  limits.memory.swap: 2GiB
   security.idmap.isolated: "true"
   security.nesting: "false"
   security.privileged: "false"
