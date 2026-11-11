@@ -12,6 +12,15 @@ its normal dev command, bound to `127.0.0.1`, and keep it running in a dedicated
 Herdr pane or a background process with a known PID and log. Keep the project's
 existing port/config conventions when they work.
 
+For a frontend with a backend, start or reuse both services and keep them running
+for the preview. Prefer relative API URLs such as `/api/users`, using the project's
+server-side development proxy to reach the backend inside the container. Configure
+that proxy when needed: browser-side `localhost` refers to the user's laptop, and
+the preview tunnel does not rewrite JavaScript URLs. Verify a representative API
+request through the forwarded frontend URL and check the expected response; when
+browser access is available, exercise the corresponding UI action too. A page
+loading successfully alone does not verify its backend connection.
+
 For a standalone HTML file, serve its containing directory with Python's HTTP
 server so relative CSS, JavaScript and images remain available. For example:
 
