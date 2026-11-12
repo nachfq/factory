@@ -73,6 +73,20 @@ The HTML/CSS/JS are served by the existing Netdata web server. No framework,
 external assets, separate service or agent image change is required. Historical data
 comes from Netdata and current disk/list data from the atomic JSON snapshot.
 
+### Compact alternative
+
+Open `http://HOSTNAME/factory/v2/` (or the same path on port 19999) for a wider,
+denser layout. Each container occupies one compact row, with its name/status,
+CPU and RAM values plus history, memory limit, and numeric storage side by side.
+Small screens stack the same information. The original stays at `/factory/`,
+linked from the alternative's header.
+
+The alternative adds only `dashboard/v2/index.html` and `dashboard/v2/style.css`.
+It uses the original renderer, Catppuccin palette, scales, API, freshness checks
+and storage snapshot; the original HTML, CSS and JavaScript are unchanged. The
+existing directory mount and `/factory` Serve routes already cover this path,
+so it needs no service restart, collector changes or agent image rebuild.
+
 ### Container RAM collection
 
 `factory-memory.plugin` is a small Python collector supervised by Netdata itself.

@@ -1,0 +1,97 @@
+/* Compact layout; metric definitions and rendering are shared with the original. */
+main { width: min(1560px, 100%); padding: 28px 32px 24px; }
+.page-header { margin-bottom: 22px; }
+h1 { font-size: 28px; }
+.header-status { gap: 18px; }
+.version-link { color: var(--muted); font-size: 11px; text-decoration: none; padding: 5px 9px; border: 1px solid var(--border); border-radius: 6px; }
+.version-link:hover { color: var(--ink); border-color: var(--muted); }
+.version-link:focus-visible { outline: 2px solid var(--ram); outline-offset: 3px; }
+
+.resource-row {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  align-items: center;
+  gap: 28px;
+  padding: 12px 20px;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+}
+.host-row { border: 1px solid var(--border); border-top: 2px solid var(--cpu); border-radius: 12px; background: var(--surface); padding-block: 20px; }
+.row-heading { flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; margin: 0; min-width: 0; }
+.row-identity { gap: 9px; }
+.row-icon { width: 25px; height: 25px; border-radius: 7px; }
+.row-icon svg { width: 15px; height: 15px; }
+h3 { font-size: 14px; }
+.state { padding-left: 34px; font-size: 11px; }
+.metrics { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 112px; gap: 24px; align-items: center; }
+.metric:not(.disk) { display: grid; grid-template-columns: 83px minmax(0, 1fr); grid-template-rows: auto auto minmax(14px, auto); column-gap: 12px; }
+.metric-heading { grid-column: 1; grid-row: 1 / 3; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; }
+.metric-name { font-size: 10px; letter-spacing: .06em; }
+.metric-value { font-size: 22px; font-weight: 550; white-space: nowrap; }
+.metric-unit { font-size: 11px; margin-left: 3px; }
+.metric-detail { grid-column: 1; grid-row: 3; font-size: 10px; line-height: 14px; margin: 0; min-height: 14px; }
+.plot, .no-data { grid-column: 2; grid-row: 1 / 3; margin: 0; min-width: 0; }
+.chart { height: 46px; }
+.plot-ceiling { top: 0; font-size: 8px; }
+.time-axis { grid-column: 2; grid-row: 3; margin-top: 1px; font-size: 9px; line-height: 13px; }
+.plot-tooltip { bottom: 42px; }
+.plot-cursor { top: 5px; }
+.no-data { min-height: 46px; font-size: 10px; }
+.disk { min-height: 62px; justify-content: center; padding-left: 20px; }
+.disk .metric-value { margin-top: 3px; font-size: 22px; }
+.disk-free { font-size: 10px; margin-top: 1px; }
+.disk-caption { font-size: 10px; margin-top: 2px; }
+.list-heading { margin: 24px 0 10px; }
+h2 { font-size: 14px; gap: 8px; }
+.count { font-size: 10px; padding: 1px 6px; border-radius: 5px; }
+#instances { gap: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+#instances .resource-row + .resource-row { border-top: 1px solid var(--border); }
+#instances .resource-row:first-child { border-radius: 11px 11px 0 0; }
+#instances .resource-row:last-child { border-radius: 0 0 11px 11px; }
+#instances .resource-row:only-child { border-radius: 11px; }
+#instances .resource-row:hover { background: #232334; }
+footer { margin-top: 16px; }
+
+@media (min-width: 1100px) {
+  .host-row .chart { height: 64px; }
+  .host-row .metric-value, .host-row .disk .metric-value { font-size: 26px; }
+  .host-row .no-data { min-height: 64px; }
+}
+@media (max-width: 1050px) {
+  main { padding-inline: 22px; }
+  .resource-row { grid-template-columns: 158px minmax(0, 1fr); gap: 20px; padding-inline: 16px; }
+  .metrics { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 100px; gap: 18px; }
+  .metric:not(.disk) { grid-template-columns: 75px minmax(0, 1fr); column-gap: 8px; }
+  .disk { padding-left: 16px; }
+}
+@media (max-width: 760px) {
+  main { padding: 24px 16px; }
+  .page-header { align-items: flex-start; gap: 16px; }
+  h1 { font-size: 25px; }
+  .header-status { gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .live-status { padding: 0; }
+  .resource-row { display: block; padding: 15px 16px; }
+  .row-heading { flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .state { padding: 0; }
+  .metrics { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 20px; }
+  .metric:not(.disk) { display: block; }
+  .metric-heading { flex-direction: row; align-items: baseline; gap: 8px; }
+  .metric-value { font-size: 21px; }
+  .metric-detail { margin-top: 3px; }
+  .plot, .no-data { margin-top: 6px; }
+  .chart { height: 52px; }
+  .no-data { min-height: 52px; }
+  .disk { grid-column: 1 / -1; flex-direction: row; justify-content: flex-start; align-items: baseline; flex-wrap: wrap; min-height: 0; border-left: 0; border-top: 1px solid var(--border); padding: 10px 0 0; gap: 4px 10px; }
+  .disk .metric-value { margin: 0; font-size: 19px; }
+  .disk-free, .disk-caption { margin: 0; }
+  .period-label { display: inline; }
+  .list-heading { margin-top: 20px; }
+}
+@media (max-width: 410px) {
+  main { padding-inline: 12px; }
+  .resource-row { padding-inline: 12px; }
+  .header-status { max-width: 160px; gap: 6px 10px; }
+  .version-link { padding: 3px 7px; }
+  .metrics { gap: 10px 14px; }
+}
