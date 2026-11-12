@@ -36,7 +36,7 @@ Configuration and metrics persist in Compose-managed volumes.
 
 Open `http://TAILSCALE_IP:19999/factory/index.html` for the compact everyday view:
 one server row, then its Factory containers ordered by occupied disk space.
-CPU and RAM show the last hour with the current value above each graph; disk
+CPU and RAM show the last hour with the current value beside each graph; disk
 is numeric only. The host also shows available disk space. There are no menus
 or time-range controls. Hover a graph, or focus it and use the arrow keys, for
 an individual timestamp/value. The UI is in English and uses Catppuccin Mocha,
@@ -73,17 +73,19 @@ The HTML/CSS/JS are served by the existing Netdata web server. No framework,
 external assets, separate service or agent image change is required. Historical data
 comes from Netdata and current disk/list data from the atomic JSON snapshot.
 
-### Compact alternative
+### Dashboard versions
 
-Open `http://HOSTNAME/factory/v2/` (or the same path on port 19999) for a wider,
-denser layout. Each container occupies one compact row, with its name/status,
+The compact layout is the default at `http://HOSTNAME/factory/` (or the same path
+on port 19999), and remains available at `/factory/v2/`. Each container occupies
+one compact row, with its name/status,
 CPU and RAM values plus history, memory limit, and numeric storage side by side.
-Small screens stack the same information. The original stays at `/factory/`,
-linked from the alternative's header.
+Small screens stack the same information. The original layout is preserved at
+`/factory/v1/`, linked from the compact layout's header.
 
-The alternative adds only `dashboard/v2/index.html` and `dashboard/v2/style.css`.
-It uses the original renderer, Catppuccin palette, scales, API, freshness checks
-and storage snapshot; the original HTML, CSS and JavaScript are unchanged. The
+The default and v2 pages use `dashboard/v2/style.css` over the base stylesheet.
+Both layouts use the same renderer, Catppuccin palette, scales, API, freshness
+checks and storage snapshot. The original HTML is archived unchanged under
+`dashboard/v1/`; the base CSS and JavaScript remain shared and unchanged. The
 existing directory mount and `/factory` Serve routes already cover this path,
 so it needs no service restart, collector changes or agent image rebuild.
 

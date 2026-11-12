@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <base href="/factory/">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#181825">
+  <title>Resources · Homelab</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
+</head>
+<body>
+<main>
+  <header class="page-header">
+    <div>
+      <h1 id="hostname">Homelab</h1>
+    </div>
+    <div class="header-status"><span class="period-label">Last hour</span>
+      <div id="status" class="live-status" role="status">Connecting…</div></div>
+  </header>
+
+  <section id="host" aria-label="Host resources" aria-busy="true">
+    <div class="loading-state">Loading…</div>
+  </section>
+
+  <section class="environments" aria-labelledby="environments-title">
+    <div class="list-heading">
+      <h2 id="environments-title" title="Sorted by disk usage">Containers <span id="count" class="count">—</span></h2>
+    </div>
+    <div id="instances"></div>
+  </section>
+
+  <footer>
+    <span>CPU: % of host</span>
+    <span id="disk-updated">Disk: —</span>
+  </footer>
+</main>
+<script src="app.js?v=6"></script>
+</body>
+</html>

@@ -9,15 +9,17 @@
   <title>Resources · Homelab</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=4">
   <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="v2/style.css?v=2">
 </head>
 <body>
 <main>
   <header class="page-header">
-    <div>
-      <h1 id="hostname">Homelab</h1>
+    <h1 id="hostname">Homelab</h1>
+    <div class="header-status">
+      <span class="period-label">Last hour</span>
+      <div id="status" class="live-status" role="status">Connecting…</div>
+      <a class="version-link" href="v1/">Original <span aria-hidden="true">↗</span></a>
     </div>
-    <div class="header-status"><span class="period-label">Last hour</span>
-      <div id="status" class="live-status" role="status">Connecting…</div></div>
   </header>
 
   <section id="host" aria-label="Host resources" aria-busy="true">
