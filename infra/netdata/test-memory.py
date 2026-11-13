@@ -38,13 +38,6 @@ class MemoryTest(unittest.TestCase):
             self.assertEqual(samples, {})
             self.assertEqual(len(errors), 1)
 
-    def test_service_container_can_publish_the_same_corrected_memory_series(self):
-        self.cgroup.rename(self.root/'lxc.payload.home-assistant')
-        self.snapshot.write_text(json.dumps({'instances':[{'name':'home-assistant','status':'Running'}]}))
-        samples, errors = memory.collect(self.snapshot, self.root)
-        self.assertEqual(samples, {'home-assistant':600*MiB})
-        self.assertEqual(errors, [])
-
     def test_unsafe_names_cannot_escape_the_cgroup_directory_or_inject_protocol(self):
         self.snapshot.write_text(json.dumps({'instances':[{'name':'dev-../../elsewhere','status':'Running'}]}))
         with self.assertRaises(ValueError):

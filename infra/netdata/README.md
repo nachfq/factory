@@ -226,8 +226,7 @@ cd ~/services/netdata
 ionice -c 3 python3 collect-storage.py --statsd
 ```
 
-It selects instances tagged `user.agent-env=true` or explicitly opted in with
-`user.factory.monitor=true`, then sequentially executes
+It selects instances tagged `user.agent-env=true`, then sequentially executes
 `nice -n 19 ionice -c 3 du -sx -B1 /` inside running instances. The guest needs
 Python 3, coreutils and util-linux, already present in the agent image. No files
 or software are installed in guests. This counts allocated blocks for their
