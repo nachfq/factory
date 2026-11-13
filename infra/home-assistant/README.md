@@ -47,8 +47,8 @@ docker compose up -d
 
 Configuration, accounts, integrations and the database persist under
 `/opt/home-assistant/config`, outside the Docker container. This directory and
-`.env` remain private and untracked. The template trusts only the guest's
-loopback HTTP proxy; direct LAN clients still connect normally. No physical-host
+`.env` remain private and untracked. Access uses plain TCP forwarding rather than
+an HTTP reverse proxy, so Home Assistant needs no trusted-proxy HTTP settings. No physical-host
 USB, Bluetooth or other device passthrough is configured.
 
 ## Access and onboarding
@@ -56,11 +56,11 @@ USB, Bluetooth or other device passthrough is configured.
 The local URL is `http://GUEST_LAN_IP:8123`. For tailnet access, run on the host:
 
 ```bash
-tailscale serve --bg --http=8123 http://127.0.0.1:8123
+tailscale serve --bg --tcp=8123 tcp://127.0.0.1:8123
 tailscale serve status
 ```
 
-Open `http://HOSTNAME:8123` through Tailscale. This adds a separate HTTP listener
+Open `http://HOSTNAME:8123` through Tailscale. This adds a separate TCP listener
 without changing the existing `/factory` routes or router port mappings. The
 owner creates their account and password in the onboarding interface, then
 confirms discovered integrations or links the relevant manufacturer accounts.
