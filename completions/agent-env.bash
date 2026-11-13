@@ -3,7 +3,7 @@ _agent_env_complete() {
   local current=${COMP_WORDS[COMP_CWORD]} name
   COMPREPLY=()
   if (( COMP_CWORD == 1 )); then
-    mapfile -t COMPREPLY < <(compgen -W 'new open list remove' -- "$current")
+    mapfile -t COMPREPLY < <(compgen -W 'new open open-all list remove' -- "$current")
   elif (( COMP_CWORD == 2 )) && [[ ${COMP_WORDS[1]} == open || ${COMP_WORDS[1]} == remove ]]; then
     while IFS= read -r name; do
       [[ $name == "$current"* ]] && COMPREPLY+=("$name")

@@ -95,6 +95,7 @@ agent-env new demo
 agent-env new project https://github.com/OWNER/REPOSITORY.git
 agent-env list
 agent-env open demo
+agent-env open-all
 agent-env remove demo
 ```
 
@@ -113,6 +114,11 @@ Herdr gets a project workspace with an editor on the right and a shell or
 authenticated Codex on the left. `open` starts a stopped environment and reconnects
 without duplicating the profile/workspace. Existing running panes stay intact.
 After a server restart it can restore the editor/agent in its managed shell panes.
+`open-all` queries Incus and opens every managed agent environment, including
+stopped ones, through the same `open` flow. Services such as Home Assistant and
+Ollama are excluded. It processes environments in name order, continues after an
+individual failure and exits with an error listing any environments it could not
+open. It works on both the laptop and the host's local client.
 `remove` permanently deletes the managed container and local connection entries;
 it does not check for unpushed work or ask for confirmation.
 

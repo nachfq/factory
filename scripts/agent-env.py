@@ -240,6 +240,24 @@ def connect(name):
     preview_client('attach',machine)
 
 
+def open_all():
+    names = sorted({item["config"]["user.agent-env.name"] for item in instances()
+                    if item.get("config", {}).get("user.agent-env") == "true"})
+    if not names:
+        print("No managed environments found.")
+        return
+    failed = []
+    for index, name in enumerate(names, 1):
+        print(f"[{index}/{len(names)}] Opening {name}...", flush=True)
+        try:
+            connect(name)
+        except (RuntimeError, subprocess.SubprocessError) as error:
+            print(f"Could not open {name}: {error}", file=sys.stderr)
+            failed.append(name)
+    if failed:
+        raise RuntimeError("Failed to open: " + ", ".join(failed))
+
+
 def preview_client(action, machine):
     if HOST == 'local' or not (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY')):
         return
@@ -333,6 +351,7 @@ def main():
     new.add_argument("repo", nargs="?")
     opening = commands.add_parser("open", help="Start if stopped and make available in Herdr")
     opening.add_argument("name")
+    commands.add_parser("open-all", help="Open all managed environments in Herdr, starting stopped ones")
     listing = commands.add_parser("list", help="List environments managed by this command")
     listing.add_argument("--names", action="store_true", help="Print only environment names")
     deletion = commands.add_parser("remove", help="Permanently delete an environment and its files")
@@ -344,6 +363,8 @@ def main():
         create(args.name, args.repo)
     elif args.command == "open":
         connect(args.name)
+    elif args.command == "open-all":
+        open_all()
     elif args.command == "remove":
         remove(args.name)
     else:

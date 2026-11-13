@@ -1,13 +1,15 @@
 """Direct Incus access and independent SSH credentials on the Incus host."""
 
 import importlib.util
+from contextlib import redirect_stderr, redirect_stdout
+import io
 import json
 import os
 from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -79,6 +81,38 @@ class LocalClientTest(unittest.TestCase):
                                 capture_output=True, text=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.splitlines(), ['running-demo', 'stopped-demo'])
+
+    def test_open_all_cli_includes_stopped_agents_but_excludes_services(self):
+        fixtures = [
+            {'status': 'Stopped', 'config': {'user.agent-env': 'true', 'user.agent-env.name': 'zeta'}},
+            {'status': 'Running', 'config': {'user.agent-env': 'true', 'user.agent-env.name': 'alpha'}},
+            {'name': 'home-assistant', 'config': {'user.service': 'home-assistant'}},
+            {'name': 'ollama', 'config': {'user.service': 'ollama'}},
+        ]
+        with patch.object(self.client, 'instances', return_value=fixtures), \
+                patch.object(self.client, 'connect') as connect, \
+                patch.dict(os.environ, {'HERDR_ENV': '1'}), \
+                patch('sys.argv', ['agent-env', 'open-all']), redirect_stdout(io.StringIO()):
+            self.client.main()
+        self.assertEqual(connect.call_args_list, [call('alpha'), call('zeta')])
+
+    def test_open_all_attempts_remaining_agents_after_a_failure_and_reports_it(self):
+        fixtures = [{'config': {'user.agent-env': 'true', 'user.agent-env.name': name}}
+                    for name in ['alpha', 'beta', 'gamma']]
+        errors = io.StringIO()
+        with patch.object(self.client, 'instances', return_value=fixtures), \
+                patch.object(self.client, 'connect', side_effect=[RuntimeError('SSH unavailable'), None, None]) as connect, \
+                redirect_stdout(io.StringIO()), redirect_stderr(errors):
+            with self.assertRaisesRegex(RuntimeError, 'Failed to open: alpha'):
+                self.client.open_all()
+        self.assertEqual(connect.call_args_list, [call('alpha'), call('beta'), call('gamma')])
+        self.assertIn('Could not open alpha: SSH unavailable', errors.getvalue())
+
+    def test_open_all_without_managed_environments_does_not_connect(self):
+        with patch.object(self.client, 'instances', return_value=[]), \
+                patch.object(self.client, 'connect') as connect, redirect_stdout(io.StringIO()):
+            self.client.open_all()
+        connect.assert_not_called()
 
 
 if __name__ == '__main__':
