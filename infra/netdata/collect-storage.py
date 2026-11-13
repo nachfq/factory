@@ -58,7 +58,8 @@ def snapshot(previous, host_paths, measure=collect_instance):
     old = {item["name"]: item for item in previous.get("instances", [])}
     measurements = []
     for instance in instances:
-        if instance.get("config", {}).get("user.agent-env") != "true":
+        tags = instance.get("config", {})
+        if tags.get("user.agent-env") != "true" and tags.get("user.factory.monitor") != "true":
             continue
         name = instance["name"]
         item = {"name": name, "status": instance["status"]}

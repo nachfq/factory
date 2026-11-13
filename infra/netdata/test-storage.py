@@ -86,6 +86,20 @@ class StorageTests(unittest.TestCase):
             self.assertEqual(argv[:4], ["incus", "exec", "space;echo nope", "--"])
             self.assertNotIn("shell", run.call_args.kwargs)
 
+    def test_explicitly_monitored_services_are_included_without_becoming_agent_environments(self):
+        listing = [{"name":"home-assistant", "status":"Running",
+                    "config":{"user.factory.monitor":"true"},
+                    "expanded_config":{"limits.memory":"2GiB"}},
+                   {"name":"other-service", "status":"Running", "config":{}}]
+        measured = []
+        def measure(name):
+            measured.append(name)
+            return dict(cpu_seconds=0, disk_read_bytes=0, used_bytes=123)
+        with patch.object(collector.subprocess, "check_output", return_value=json.dumps(listing)):
+            result = collector.snapshot({}, ["/"], measure)
+        self.assertEqual(measured, ["home-assistant"])
+        self.assertEqual(result["instances"][0]["memory_limit"], "2GiB")
+
 
 if __name__ == "__main__":
     unittest.main()

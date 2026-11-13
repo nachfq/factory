@@ -1,0 +1,11 @@
+default_config:
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# Tailscale Serve -> host loopback -> Incus proxy -> guest loopback.
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 127.0.0.1
+    - ::1
