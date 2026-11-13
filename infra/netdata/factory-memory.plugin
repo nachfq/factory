@@ -15,8 +15,8 @@ def collect(snapshot, root):
         if item["status"] != "Running":
             continue
         name = item["name"]
-        if not re.fullmatch(r"dev-[a-z0-9-]+", name):
-            raise ValueError("Unexpected Factory instance name")
+        if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9-]*", name):
+            raise ValueError("Unsafe Incus container name")
         cgroup = root / ("lxc.payload." + name)
         try:
             stats = dict(line.split() for line in (cgroup / "memory.stat").read_text().splitlines())

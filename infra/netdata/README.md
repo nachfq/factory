@@ -35,7 +35,7 @@ Configuration and metrics persist in Compose-managed volumes.
 ## Simple resource dashboard
 
 Open `http://TAILSCALE_IP:19999/factory/index.html` for the compact everyday view:
-one server row, then its Factory containers ordered by occupied disk space.
+one server row, then all its Incus containers ordered by occupied disk space.
 CPU and RAM show the last hour with the current value beside each graph; disk
 is numeric only. The host also shows available disk space. There are no menus
 or time-range controls. Hover a graph, or focus it and use the arrow keys, for
@@ -161,7 +161,7 @@ Open the main Netdata page, then the **Metrics**/node charts and **StatsD**:
 
 - `host_storage`: root filesystem used, available and reserved space in one
   stacked GiB chart, context `statsd_factory.host_disk_space`.
-- `incus_storage`: one GiB gauge per running Factory instance, with its name as
+- `incus_storage`: one GiB gauge per running Incus container, with its name as
   the dimension. Contexts are `statsd_factory.incus.INSTANCE.used_gauge`.
 - `storage_collection`: count of failed guest scans, expected to be zero.
 
@@ -172,7 +172,7 @@ exclude reclaimable host cache and guest swap respectively.
 
 For a compact layout, create **Dashboards → + → Resources**, add those host
 contexts and the desired container contexts, then **Save**. On shared cgroup
-charts select only the `dev-*` instances (exclude Docker and `lxc.monitor.*`)
+charts select the Incus container instances (exclude Docker and `lxc.monitor.*`)
 and group by instance when comparing environments. A newly created environment
 gets its own disk chart in StatsD after the next scan; a layout selecting
 individual contexts needs that new chart added. The native dashboard layout is
@@ -226,9 +226,12 @@ cd ~/services/netdata
 ionice -c 3 python3 collect-storage.py --statsd
 ```
 
-It selects instances tagged `user.agent-env=true`, then sequentially executes
+It discovers all Incus containers automatically, without tags or a name prefix,
+then sequentially executes
 `nice -n 19 ionice -c 3 du -sx -B1 /` inside running instances. The guest needs
-Python 3, coreutils and util-linux, already present in the agent image. No files
+Python 3, coreutils and util-linux, already present in the agent image. A container
+without these tools still appears, with its disk measurement unavailable. Virtual
+machines are excluded. No files
 or software are installed in guests. This counts allocated blocks for their
 root filesystem, including OS/tools/project files, and skips other filesystems.
 Same-filesystem bind mounts can be counted. It is not full pool accounting:

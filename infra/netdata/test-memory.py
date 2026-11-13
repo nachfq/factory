@@ -38,6 +38,16 @@ class MemoryTest(unittest.TestCase):
             self.assertEqual(samples, {})
             self.assertEqual(len(errors), 1)
 
+    def test_services_without_dev_prefix_publish_memory_charts(self):
+        (self.root/'lxc.payload.ollama').mkdir()
+        (self.root/'lxc.payload.ollama/memory.current').write_text(str(900*MiB))
+        (self.root/'lxc.payload.ollama/memory.stat').write_text(f'inactive_file {100*MiB}\nslab_reclaimable 0\n')
+        self.snapshot.write_text(json.dumps({'instances': [{'name': 'ollama', 'status': 'Running'}]}))
+        samples, errors = memory.collect(self.snapshot, self.root)
+        self.assertEqual(samples, {'ollama': 800*MiB})
+        self.assertEqual(errors, [])
+        self.assertIn('CHART factory_memory.ollama', memory.render(samples, set(), 10))
+
     def test_unsafe_names_cannot_escape_the_cgroup_directory_or_inject_protocol(self):
         self.snapshot.write_text(json.dumps({'instances':[{'name':'dev-../../elsewhere','status':'Running'}]}))
         with self.assertRaises(ValueError):

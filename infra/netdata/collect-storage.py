@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Snapshot allocated bytes in running Factory instances; no guest installation."""
+"""Snapshot allocated bytes for all Incus containers; no guest installation."""
 import argparse
 import fcntl
 import json
@@ -58,7 +58,7 @@ def snapshot(previous, host_paths, measure=collect_instance):
     old = {item["name"]: item for item in previous.get("instances", [])}
     measurements = []
     for instance in instances:
-        if instance.get("config", {}).get("user.agent-env") != "true":
+        if instance["type"] != "container":
             continue
         name = instance["name"]
         item = {"name": name, "status": instance["status"]}

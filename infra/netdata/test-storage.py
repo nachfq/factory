@@ -48,12 +48,15 @@ class StorageTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             collector.statsd_payload(result)
 
-    def test_stopped_failed_deleted_and_unmanaged(self):
-        def instance(name, status="Running", managed=True):
-            return {"name": name, "status": status,
+    def test_all_containers_include_services_and_skip_virtual_machines(self):
+        def instance(name, status="Running", managed=True, kind="container"):
+            return {"name": name, "status": status, "type": kind,
                     "config": {"user.agent-env": "true" if managed else "false"}}
         listing = [instance("new"), instance("stopped", "Stopped"),
-                   instance("failed"), instance("changing"), instance("unmanaged", managed=False)]
+                   instance("failed"), instance("changing"),
+                   instance("ollama", managed=False),
+                   {"name": "home-assistant", "type": "container", "status": "Running", "config": {}},
+                   instance("vm", kind="virtual-machine")]
         previous = {"instances": [{"name": name, "used_bytes": 42, "measured_at": 100}
                                    for name in ("stopped", "failed", "changing", "deleted")]}
         called = []
@@ -66,9 +69,11 @@ class StorageTests(unittest.TestCase):
         with patch.object(collector.subprocess, "check_output", return_value=json.dumps(listing)):
             result = collector.snapshot(previous, ["/"], measure)
         by_name = {i["name"]: i for i in result["instances"]}
-        self.assertEqual(called, ["new", "failed", "changing"])
+        self.assertEqual(called, ["new", "failed", "changing", "ollama", "home-assistant"])
         self.assertNotIn("deleted", by_name)
-        self.assertNotIn("unmanaged", by_name)
+        self.assertNotIn("vm", by_name)
+        self.assertEqual(by_name["ollama"]["used_bytes"], 999)
+        self.assertEqual(by_name["home-assistant"]["used_bytes"], 999)
         self.assertEqual(by_name["new"]["used_bytes"], 999)
         for name in ("stopped", "failed", "changing"):
             self.assertEqual(by_name[name]["used_bytes"], 42)
