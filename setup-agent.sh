@@ -17,7 +17,8 @@ Usage: ./setup-agent.sh COMMAND [ARGUMENT]
   grant-sudo     Allow dev to install packages without a password inside Incus.
                  Run as root inside the disposable environment only.
   install-codex  Install/update Codex using the official installer as this user.
-  install-pi     Install/update Pi using the official installer as this user.
+  install-pi     Install/update Pi and its pinned Fast-mode extension as this user.
+  install-pi-extensions  Install the pinned Pi extensions without updating Pi.
   configure-codex  Default Codex to GPT-6.1 Sol / high with full access (YOLO).
                    Run only inside the disposable agent environment.
   install-herdr  Install/update Herdr and its Codex status integration as this user.
@@ -151,6 +152,16 @@ install_pi() {
     exit 1
   fi
   curl -fsSL https://pi.dev/install.sh | sh
+  install_pi_extensions
+}
+
+install_pi_extensions() {
+  if (( EUID == 0 )); then
+    printf 'Run install-pi-extensions as the user who will use Pi, not root.\n' >&2
+    exit 1
+  fi
+  PATH="$HOME/.local/bin:$HOME/.pi/agent/bin:${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH" \
+    "$HOME/.local/bin/pi" install npm:@nijaru/pi-fast-mode@0.0.9
 }
 
 install_herdr() {
@@ -233,6 +244,7 @@ case "${1:-help}" in
   grant-sudo) grant_sudo ;;
   install-codex) install_codex ;;
   install-pi) install_pi ;;
+  install-pi-extensions) install_pi_extensions ;;
   configure-codex)
     if (( EUID == 0 )); then
       printf 'Run configure-codex as the user who will use Codex, not root.\n' >&2

@@ -45,6 +45,14 @@ The tooling remains the same as before the repository split:
 - Codex using `curl -fsSL https://chatgpt.com/codex/install.sh | sh`, with no
   Codex version pin. Re-run `install-codex` to update.
 - Pi using `curl -fsSL https://pi.dev/install.sh | sh`, without a Pi release pin.
+  `install-pi` also installs the pinned `@nijaru/pi-fast-mode@0.0.9` package.
+  On an existing Pi installation, run `./setup-agent.sh install-pi-extensions`.
+  After `/reload` (or a new Pi session), `/fast on`, `/fast off` and `/fast status`
+  control ChatGPT Fast mode for supported OpenAI/Codex models. It starts off;
+  Fast mode uses more subscription allowance when enabled. Existing Fast-mode
+  preferences and other packages are preserved. Remove with
+  `pi remove npm:@nijaru/pi-fast-mode@0.0.9` if needed.
+  Upstream: https://github.com/nijaru/pi-fast-mode.
   Re-run `install-pi` or use Pi's updater to update. The skill installer links the
   messaging extension into Pi's native extension directory without rewriting its
   settings. Start ordinary `pi` or use `/reload` in an existing session.
