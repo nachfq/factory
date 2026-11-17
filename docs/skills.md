@@ -71,6 +71,11 @@ They are fetched at the manifest's exact commit, under
 configured `path` is linked into the skills directory. A path may identify one
 skill or a collection. Upstream licenses and metadata remain in that checkout.
 
+The default ordinary sources include Anthropic's `frontend-design` and obra's
+`writing-clearly-and-concisely`. Both link into the shared `~/.agents/skills/`
+directory for Codex and Pi. Their instructions, licenses and reference files stay
+in the pinned upstream checkout; no third-party text is vendored into Factory.
+
 Third-party source stays out of Factory's Git history. Both native plugin data
 and ordinary sources survive the image recipe's cache cleanup. Public sources
 need no GitHub/Codex login; credentials are never included in the bundle.
