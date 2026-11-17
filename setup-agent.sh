@@ -63,10 +63,10 @@ install_tools() {
     printf '%s  %s\n' "$checksum" "$download_dir/$name" | sha256sum --check --status
   }
 
-  if ! command -v dua >/dev/null; then
+  if [[ $(dua --version 2>/dev/null || true) != 'dua 3.0.3' ]]; then
     fetch dua.tar.gz \
-      https://github.com/Byron/dua-cli/releases/download/v3.0.0/dua-v3.0.0-x86_64-unknown-linux-musl.tar.gz \
-      59438b0934a521dd4cf2896fa42046023df60e1c25812a07cef913dc2b2d103f
+      https://github.com/Byron/dua-cli/releases/download/v3.0.3/dua-v3.0.3-x86_64-unknown-linux-musl.tar.gz \
+      68c3142969cf19b29353dbab3c456a483753d49116dbf19ae44ddd545a0abad8
     mkdir "$download_dir/dua"
     tar -xzf "$download_dir/dua.tar.gz" -C "$download_dir/dua"
     local dua_binary
@@ -81,17 +81,17 @@ install_tools() {
     "${root[@]}" tar -xzf "$download_dir/nvim.tar.gz" -C /opt
     "${root[@]}" ln -sfn /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
   fi
-  if [[ $(tree-sitter --version 2>/dev/null || true) != 'tree-sitter 0.27.1'* ]]; then
+  if [[ $(tree-sitter --version 2>/dev/null || true) != 'tree-sitter 0.27.2'* ]]; then
     fetch tree-sitter.gz \
-      https://github.com/tree-sitter/tree-sitter/releases/download/v0.27.1/tree-sitter-linux-x64.gz \
-      d01042f94ba3d6827ddc9788e235f75d8366431be42bdf90ade534d960c98b7d
+      https://github.com/tree-sitter/tree-sitter/releases/download/v0.27.2/tree-sitter-linux-x64.gz \
+      7ed56d152c52437397b9fcaa43cf341f49933cecc1ca291843f0d347c6e2cb3a
     gzip -dc "$download_dir/tree-sitter.gz" > "$download_dir/tree-sitter"
     "${root[@]}" install -m 755 "$download_dir/tree-sitter" /usr/local/bin/tree-sitter
   fi
-  if [[ $(lazygit --version 2>/dev/null || true) != *'version=0.66.2,'* ]]; then
+  if [[ $(lazygit --version 2>/dev/null || true) != *'version=0.66.3,'* ]]; then
     fetch lazygit.tar.gz \
-      https://github.com/jesseduffield/lazygit/releases/download/v0.66.2/lazygit_0.66.2_linux_x86_64.tar.gz \
-      158efc9ddfa1241fab5fb3526bb442c8dc6c4b1904d73213b9e4e93e03c52034
+      https://github.com/jesseduffield/lazygit/releases/download/v0.66.3/lazygit_0.66.3_linux_x86_64.tar.gz \
+      0a23f429a95f0d09db298b3c291536d818de066aa5a85c255806f0490ff6656b
     tar -xzf "$download_dir/lazygit.tar.gz" -C "$download_dir" lazygit
     "${root[@]}" install -m 755 "$download_dir/lazygit" /usr/local/bin/lazygit
   fi
@@ -102,12 +102,12 @@ install_tools() {
     tar -xzf "$download_dir/starship.tar.gz" -C "$download_dir" starship
     "${root[@]}" install -m 755 "$download_dir/starship" /usr/local/bin/starship
   fi
-  if [[ $(gh --version 2>/dev/null | sed -n '1p' || true) != 'gh version 2.103.3 '* ]]; then
+  if [[ $(gh --version 2>/dev/null | sed -n '1p' || true) != 'gh version 2.104.0 '* ]]; then
     fetch gh.tar.gz \
-      https://github.com/cli/cli/releases/download/v2.103.3/gh_2.103.3_linux_amd64.tar.gz \
-      4c806978ffce1cec70853302a56d70ac6da4f19bae7adca4e1a8ab00633dd91d
-    tar -xzf "$download_dir/gh.tar.gz" -C "$download_dir" gh_2.103.3_linux_amd64/bin/gh
-    "${root[@]}" install -m 755 "$download_dir/gh_2.103.3_linux_amd64/bin/gh" /usr/local/bin/gh
+      https://github.com/cli/cli/releases/download/v2.104.0/gh_2.104.0_linux_amd64.tar.gz \
+      98cb101ad87dbbd3f6b2f2bfcbd43197ccd07643140121d8a9cfaa91eadbc24e
+    tar -xzf "$download_dir/gh.tar.gz" -C "$download_dir" gh_2.104.0_linux_amd64/bin/gh
+    "${root[@]}" install -m 755 "$download_dir/gh_2.104.0_linux_amd64/bin/gh" /usr/local/bin/gh
   fi
   printf 'Installed development tools. Continue with the user setup steps in README.md.\n'
 }

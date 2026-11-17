@@ -153,8 +153,8 @@ the default is `https://github.com/nachfq/dotfiles.git`. That checkout should pr
 `apply.sh apply` for configuration and `apply.sh plugins` for editor dependencies.
 Pinned dotfiles revisions with the previous `setup-agent.sh` interface also work.
 
-It creates a fresh Ubuntu 24.04 builder, checks out both pinned sources, installs
-Factory's tools and applies the selected dotfiles,
+It creates a fresh Ubuntu 24.04 builder, applies available Ubuntu package updates,
+checks out both pinned sources, installs Factory's tools and applies the selected dotfiles,
 removes credentials/instance identity, stops it and publishes private aliases:
 
 - `agent-base`, the latest successful build;

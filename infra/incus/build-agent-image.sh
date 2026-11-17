@@ -29,6 +29,8 @@ set -euo pipefail
 touch /etc/agent-base-builder
 id dev >/dev/null 2>&1 || useradd --create-home --uid 1001 --user-group --shell /bin/bash dev
 apt-get update -qq
+# Refresh the clean OS image too, including libraries not requested by install-tools.
+apt-get upgrade -y -qq
 apt-get install -y -qq --no-install-recommends git curl ca-certificates
 runuser -u dev -- env GIT_TERMINAL_PROMPT=0 git clone "$DOTFILES_REPO" /home/dev/dotfiles
 runuser -u dev -- git -C /home/dev/dotfiles checkout -B main "$DOTFILES_REVISION"
