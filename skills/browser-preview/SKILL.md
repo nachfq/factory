@@ -1,11 +1,16 @@
 ---
 name: browser-preview
-description: Deliver a ready browser preview when creating or changing a user-facing HTML artifact or frontend in a Factory environment. Use as part of delivery without waiting for the user to request a preview.
+description: Deliver HTML/frontend previews from a Factory container through Herdr. Also use when the user wants to see or control the same browser or GUI session as the agent, including browser extensions.
 ---
 
 Give the user a working link they can Ctrl+click in this Herdr pane to open in
 their laptop's browser. The preview stays in this container and travels over
 the existing SSH connection.
+
+For ordinary HTML/frontends, deliver a web preview as below. When the user needs
+the same browser state as the agent, a browser extension, or a desktop GUI, read
+[Shared browser and GUI sessions](references/shared-browser.md). That workflow
+uses noVNC over this same preview tunnel; the application runs in the container.
 
 Reuse the project's running development server when possible. Otherwise start
 its normal dev command, bound to `127.0.0.1`, and keep it running in a dedicated
